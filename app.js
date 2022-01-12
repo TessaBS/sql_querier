@@ -24,7 +24,6 @@ app.get('/databases', function (req, res) {
 })
 
 app.get('/tables/:db', function (req, res) {
-    console.log("Get tables");
     const dbName = req.params["db"];
     res.json([dbName, "test2", "test3"]);
 })

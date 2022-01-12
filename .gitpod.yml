@@ -1,0 +1,10 @@
+image: mysql
+tasks:
+  - init: npm ci
+vscode:
+  extensions:
+    - dbaeumer.vscode-eslint
+ports:
+  - port: 1700
+    onOpen: open-browser
+

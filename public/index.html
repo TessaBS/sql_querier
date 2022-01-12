@@ -92,9 +92,7 @@
             console.log(`Open database: ${dbName}`);
             let tablesReq = await fetch(`/tables/${selectedDb}`);
             if (tablesReq.ok) {
-                console.log("TABLES");
                 let tableNames = await tablesReq.json();
-                console.log(tableNames);
                 tableContainer.innerHTML = "";
                 tableNames.forEach(tableName => {
                     var tableElement = document.createElement('th');
