@@ -1,4 +1,5 @@
-image: mysql
+image:
+  file: .gitpod.Dockerfile
 tasks:
   - init: npm ci
 vscode:
