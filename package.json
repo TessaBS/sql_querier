@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "express": "^4.17.2",
+    "mysql2": "^2.3.3"
+  },
+  "name": "sql_querier",
+  "version": "0.0.1",
+  "main": "app.js",
+  "author": "rijkvp",
+  "license": "ISC",
+  "description": ""
+}
