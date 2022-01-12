@@ -1,11 +1,14 @@
 image:
   file: .gitpod.Dockerfile
 tasks:
-  - init: npm ci
+  - name: Node.js
+    init: npm ci
+    command: node app.js
+  - name: MySQL Database
+    init: start_mysql.sh 
 vscode:
   extensions:
     - dbaeumer.vscode-eslint
 ports:
   - port: 1700
     onOpen: open-browser
-

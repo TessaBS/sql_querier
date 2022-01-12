@@ -7,8 +7,7 @@ const port = 1700
 
 const dbConnection = mysql.createConnection({
   host: 'localhost',
-  user: 'root',
-  database: 'test'
+  user: 'root'
 });
 
 
