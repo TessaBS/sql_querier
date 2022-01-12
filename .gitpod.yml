@@ -5,7 +5,7 @@ tasks:
     init: npm ci
     command: node app.js
   - name: MySQL Database
-    init: start_mysql.sh 
+    init: start_mysql.sh && start_mysql.sh
 vscode:
   extensions:
     - dbaeumer.vscode-eslint

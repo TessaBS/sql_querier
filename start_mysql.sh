@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# this script is intended to be called from .bashrc
-# This is a workaround for not having something like supervisord
+# Starts the MySQL daemon, must be run every time
 
 if [ ! -e /var/run/mysqld/gitpod-init.lock ]
 then
