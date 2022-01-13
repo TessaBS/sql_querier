@@ -101,5 +101,6 @@ app.post('/run', async (req, res) => {
 });
 
 app.listen(port, hostname, () => {
-    console.log(`Started server at http://localhost:${port}`)
+    console.log(`Started server at ${hostname}:${port}.`)
+    console.log(`\nDRUK OP DE VOLGENDE LINK OM TE OPENEN: http://${hostname}:${port} (als hij niet automatisch opent)`)
 });
