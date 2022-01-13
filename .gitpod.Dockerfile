@@ -15,8 +15,8 @@ COPY mysql.cnf /etc/mysql/mysql.conf.d/mysqld.cnf
 # Install default-login for MySQL clients
 COPY client.cnf /etc/mysql/mysql.conf.d/client.cnf
 
-COPY mysql-bashrc-launch.sh /etc/mysql/mysql-bashrc-launch.sh
+# COPY mysql-bashrc-launch.sh /etc/mysql/mysql-bashrc-launch.sh
 
-USER gitpod
+# USER gitpod
 
-RUN echo "/etc/mysql/mysql-bashrc-launch.sh" >> ~/.bashrc
+# RUN echo "/etc/mysql/mysql-bashrc-launch.sh" >> ~/.bashrc

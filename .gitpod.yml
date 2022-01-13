@@ -2,7 +2,7 @@ image:
   file: .gitpod.Dockerfile
 tasks:
   - name: MySQL database
-    before: init_mysql.sh
+    before: sh ./init_mysql.sh
   - name: Node.js server
     before: npm ci
     init: node app.js
