@@ -15,4 +15,3 @@ then
 fi
 echo "Creating MySQL databases.."
 mysql < ./create_dbs.sql
-echo "Done!"

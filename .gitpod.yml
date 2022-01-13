@@ -1,12 +1,8 @@
 image:
   file: .gitpod.Dockerfile
 tasks:
-  - name: Startup script
+  - name: Startup
     command: sh ./startup.sh
-  - name: MySQL
-    init: sh ./init_mysql.sh
-  - name: Node.js
-    init: npm ci
 vscode:
   extensions:
     - dbaeumer.vscode-eslint
