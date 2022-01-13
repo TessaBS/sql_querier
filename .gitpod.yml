@@ -3,6 +3,7 @@ image:
 tasks:
   - name: MySQL database
     init: sh ./init_mysql.sh
+    command: sh ./start_mysql.sh
   - name: Node.js server
     init: npm ci
     command: node app.js
