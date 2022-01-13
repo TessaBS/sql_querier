@@ -2,10 +2,9 @@ image:
   file: .gitpod.Dockerfile
 tasks:
   - name: MySQL database
-    before: sh ./init_mysql.sh
+    init: sh ./init_mysql.sh
   - name: Node.js server
-    before: npm ci
-    init: node app.js
+    init: npm ci
     command: node app.js
 vscode:
   extensions:
@@ -13,3 +12,7 @@ vscode:
 ports:
   - port: 1700
     onOpen: open-browser
+  - port: 33060
+    onOpen: ignore
+  - port: 3306
+    onOpen: ignore
