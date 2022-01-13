@@ -73,13 +73,14 @@ app.get('/layout/:db', (req, res) => {
 app.post('/run', async (req, res) => {
     const dbName = req.body["db"];
     const query = req.body["query"];
+    const limit = req.body["limit"];
     dbConnection.query(`USE ${dbName}`, (useErr) => {
         if (useErr == null) {
             dbConnection.query(query, (queryErr, results) => {
                 if (queryErr == null) {
                     res.json({
                         succes: true,
-                        data: results,
+                        data: results.slice(0, limit),
                     });
                 }
                 else {
