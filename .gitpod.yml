@@ -1,11 +1,13 @@
 image:
   file: .gitpod.Dockerfile
 tasks:
-  - name: Node.js
-    init: npm ci
+  - name: Node.js server
+    before: npm ci
+    init: node app.js
     command: node app.js
-  - name: MySQL Database
-    init: start_mysql.sh && start_mysql.sh
+  - name: MySQL database
+    before: start_mysql.sh
+    init: init_mysql.sh
 vscode:
   extensions:
     - dbaeumer.vscode-eslint
