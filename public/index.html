@@ -30,12 +30,7 @@
                     <option>Laden..</option>
                 </select>
             </div>
-            <div>
-                <table class="table table-border rounded-3">
-                    <tr id="table-container" class="rounded-3">
-                    </tr>
-                </table>
-            </div>
+            <div id="layout-container"></div>
             <textarea id="sql-input" name="sql-input" class="form-control mb-3" rows="8" autofocus=true
                 placeholder="Type hier een SQL query.."></textarea>
             <button id="run-button" class="btn btn-outline-primary" disabled>Uitvoeren</button>
@@ -61,7 +56,7 @@
         const dbSelect = document.getElementById('db-select');
         const sqlInputfield = document.getElementById('sql-input');
         const runButton = document.getElementById('run-button');
-        const tableContainer = document.getElementById('table-container');
+        const layoutContainer = document.getElementById('layout-container');
         const resultContainer = document.getElementById('result-container');
         const loadingIndicator = document.getElementById('loading-indicator');
 
@@ -89,22 +84,37 @@
             runButton.disabled = false;
             const dbName = dbSelect.options[dbSelect.selectedIndex].value;
             selectedDb = dbName;
-            console.log(`Open database: ${dbName}`);
-            let tablesReq = await fetch(`/tables/${selectedDb}`);
+            let tablesReq = await fetch(`/layout/${selectedDb}`);
             if (tablesReq.ok) {
-                let tableNames = await tablesReq.json();
-                tableContainer.innerHTML = "";
-                tableNames.forEach(tableName => {
-                    var tableElement = document.createElement('th');
-                    tableElement.innerHTML = tableName;
-                    tableContainer.appendChild(tableElement);
+                let dbLayout = await tablesReq.json();
+                layoutContainer.innerHTML = '';
+
+                const tableElement = document.createElement('table');
+                tableElement.className = 'table';
+
+                dbLayout.forEach(tableInfo => {
+                    const rowElement = document.createElement('tr');
+
+                    const headerElement = document.createElement('th');
+                    headerElement.innerHTML = tableInfo.name;
+                    rowElement.appendChild(headerElement);
+
+                    tableInfo.columns.forEach(colInfo => {
+                        const colName = colInfo[0];
+                        const colType = colInfo[1];
+                        const tableElement = document.createElement('td');
+                        tableElement.innerHTML = `${colName} <small class="text-muted">(${colType})</small>`;
+                        rowElement.appendChild(tableElement);
+                    });
+
+                    tableElement.appendChild(rowElement);
                 });
+                layoutContainer.appendChild(tableElement);
             }
         }
 
         async function runSql() {
             const sqlInput = sqlInputfield.value;
-            console.log(`Run sql: ${sqlInput} on db: ${selectedDb}`);
             resultContainer.innerHTML = "";
             loadingIndicator.style.display = "block";
             await new Promise(res => setTimeout(res, 1000));
@@ -123,21 +133,26 @@
                 const resJson = await resRequest.json();
                 loadingIndicator.style.display = "none";
                 if (resJson.succes) {
-                    console.log(resJson.data);
                     resultContainer.innerHTML = '';
-                    resultContainer.innerHTML += '<table class="table">';
-                    resJson.data.forEach(row => {
-                        resultContainer.innerHTML += '<tr>';
-                        row.forEach(col => {
-                            resultContainer.innerHTML += `<td>${col}</td>`;
-                        });
-                        resultContainer.innerHTML += '</tr>';
-                    });
-                    resultContainer.innerHTML += '</table>';
+                    const tbody = document.createElement('tbody');
+                    tbody.className = 'tbody';
+                    const data = resJson.data;
+                    for (let row in resJson.data) {
+                        const tableRow = document.createElement('tr');
+                        const rowVal = data[row];
+                        for (let col in rowVal) {
+                            const tableCol = document.createElement('td');
+                            const colVal = rowVal[col];
+                            tableCol.innerHTML = colVal;
+                            tableRow.appendChild(tableCol);
+                        }
+                        tbody.appendChild(tableRow);
+                    }
+                    resultContainer.innerHTML = `<table class="table table-bordered table-striped">${tbody.outerHTML}</table>`;
                 }
                 else {
-                    resultContainer.innerHTML = 
-                    ` <div class="alert alert-danger" role="alert">
+                    resultContainer.innerHTML =
+                        ` <div class="alert alert-danger" role="alert">
                         <strong>Error: </strong>
                     ${resJson.error}
                     </div>`;

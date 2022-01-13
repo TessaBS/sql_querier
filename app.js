@@ -24,17 +24,40 @@ app.get('/databases', (req, res) => {
     res.json(dbNames)
 });
 
-app.get('/tables/:db', (req, res) => {
+app.get('/layout/:db', (req, res) => {
     const dbName = req.params["db"];
     dbConnection.query(`USE ${dbName}`, (useErr) => {
         if (useErr == null) {
-            dbConnection.query('SHOW tables', (queryErr, results, fields) => {
-                if (queryErr == null) {
-                    tableNames = [];
+            dbConnection.query('SHOW tables', (tableErr, results) => {
+                if (tableErr == null) {
+                    var tableNames = [];
+                    var promises = [];
                     results.forEach(arr => {
-                        tableNames.push(arr[0]);
-                    })
-                    res.json(tableNames);
+                        const tableName = arr[0];
+                        tableNames.push(tableName);
+                        promises.push(new Promise((resolve, reject) => dbConnection.query(
+                            `SELECT COLUMN_NAME, DATA_TYPE
+                            FROM INFORMATION_SCHEMA.COLUMNS
+                            WHERE
+                            TABLE_SCHEMA = Database()
+                            AND TABLE_NAME = '${tableName}'`,
+                            (columnErr, columnResults) => {
+                                if (columnErr == null) {
+                                    var columnNames = [];
+                                    columnResults.forEach(arr2 => {
+                                        columnNames.push(arr2);
+                                    });
+                                    resolve({
+                                        name: tableName,
+                                        columns: columnResults,
+                                    });
+                                }
+                            }))
+                        );
+                    });
+                    Promise.all(promises).then((value) => {
+                        res.json(value);
+                    });
                 }
                 else {
                     res.status(500).send();
@@ -52,16 +75,14 @@ app.post('/run', async (req, res) => {
     const query = req.body["query"];
     dbConnection.query(`USE ${dbName}`, (useErr) => {
         if (useErr == null) {
-            dbConnection.query(query, (queryErr, results, fields) => {
+            dbConnection.query(query, (queryErr, results) => {
                 if (queryErr == null) {
-                    console.log(results);
                     res.json({
                         succes: true,
                         data: results,
                     });
                 }
                 else {
-                    console.log("QUERY ERROR: " + queryErr.message);
                     res.json({
                         succes: false,
                         error: queryErr.message,
