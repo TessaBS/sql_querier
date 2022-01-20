@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run the MySQL to create the databases
-echo "Starting MySQL.."
+# Starts the MySQL server
+
 if [ ! -e /var/run/mysqld/gitpod-init.lock ]
 then
     touch /var/run/mysqld/gitpod-init.lock
@@ -13,5 +13,3 @@ then
 
     rm /var/run/mysqld/gitpod-init.lock
 fi
-echo "Creating MySQL databases.."
-mysql < ./create_dbs.sql

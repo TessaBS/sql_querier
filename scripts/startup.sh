@@ -1,4 +1,5 @@
 #!/bin/bash
+# Startup script. Initializes MySQL and Node.js
 echo "
  ____   ___  _        ___                  _           
 / ___| / _ \| |      / _ \ _   _  ___ _ __(_) ___ _ __ 
@@ -8,10 +9,14 @@ echo "
 
 Door: Rijk van Putten
 "
-                                       
-./init_mysql.sh
-sleep 1
-echo 'Install node packages..'
+
+echo "Starting MySQL server.."               
+./start_mysql.sh
+echo "Importing MySQL databases.."
+./import_dbs.sh
+
+cd ./querier
+echo "Downloading Node.js packages.."
 npm ci
-echo 'Starting server..'
-node app.js
+echo "Starting Querier.."
+node querier.js

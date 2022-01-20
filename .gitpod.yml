@@ -2,7 +2,7 @@ image:
   file: .gitpod.Dockerfile
 tasks:
   - name: Startup
-    command: sh ./startup.sh
+    command: sh ./scripts/startup.sh
 vscode:
   extensions:
     - dbaeumer.vscode-eslint
