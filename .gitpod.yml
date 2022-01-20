@@ -6,7 +6,7 @@ tasks:
 vscode:
   extensions:
     - dbaeumer.vscode-eslint
-ports:
+    - zhuangtongfa.material-themeports:
   - port: 1700
     onOpen: open-browser
   - port: 33060

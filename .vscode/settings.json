@@ -8,5 +8,8 @@
         "**/client.cnf": true,
         "**/mysql.cnf": true,
         "**/node_modules": true
-    }
+    },
+    "workbench.colorTheme": "One Dark Pro Flat",
+    "workbench.preferredDarkColorTheme": "One Dark Pro Flat",
+    "workbench.preferredLightColorTheme": "One Dark Pro Flat"
 }
