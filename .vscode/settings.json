@@ -2,6 +2,7 @@
     "files.exclude": {
         "**/.gitignore": true,
         "**/.gitpod.yml": true,
+        "**/.npmrc": true,
         "**/.vscode": true,
         "**/*Dockerfile": true,
         "**/client.cnf": true,
