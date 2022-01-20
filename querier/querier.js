@@ -16,7 +16,7 @@ app.use(express.static('public'))
 app.use(express.json());
 
 app.get('/databases', (req, res) => {
-    const files = fs.readdirSync('./databases');
+    const files = fs.readdirSync('./../databases');
     var dbNames = [];
     files.forEach(file => {
         dbNames.push(file.split('.')[0]);
