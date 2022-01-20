@@ -43,7 +43,12 @@
                     <option value=1000>1000</option>
                 </select>
             </div>
-            <button id="run-button" class="btn btn-outline-primary" disabled>Uitvoeren</button>
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="readonly-checkbox" checked>
+                <label class="form-check-label" for="flexCheckDefault">Alleen lezen</label>
+            </div>
+            <button id="run-button" class="btn btn-primary" disabled>Uitvoeren</button>
+            <button id="reset-button" class="btn btn-outline-secondary ms-2">Reset databases</button>
         </div>
         <h2 id="result-heading">Resultaat</h2>
         <div class="my-4">
@@ -54,7 +59,7 @@
             </div>
             <div id="loading-indicator" class="alert alert-info" role="alert" style="display: none;">
                 <div class="d-flex align-items-center">
-                    <p>Je query wordt uitgevoerd..</p>
+                    <p id="loading-msg">Je query wordt uitgevoerd..</p>
                     <div class="spinner-border ms-auto" role="status" aria-hidden="true"></div>
                 </div>
             </div>
@@ -62,20 +67,29 @@
     <script>
         var dbList = [];
         var selectedDb;
+        var isResetting = false;
         var selectedLimit = 100;
 
         const dbSelect = document.getElementById('db-select');
         const sqlInputfield = document.getElementById('sql-input');
         const limitSelect = document.getElementById('limit-select');
+        const readonlyCheckbox = document.getElementById('readonly-checkbox');
         const runButton = document.getElementById('run-button');
+        const resetButton = document.getElementById('reset-button');
+
         const layoutContainer = document.getElementById('layout-container');
         const resultHeading = document.getElementById('result-heading');
         const resultContainer = document.getElementById('result-container');
         const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingMsg = document.getElementById('loading-msg');
+
+
 
         dbSelect.addEventListener('change', () => openDatabase());
         limitSelect.addEventListener('change', () => changeLimit());
         runButton.addEventListener('click', () => runSql());
+        resetButton.addEventListener('click', () => resetDbs());
+
 
         async function getDatabases() {
             let listReq = await fetch('/databases');
@@ -95,9 +109,9 @@
             if (dbSelect.selectedIndex == 0) {
                 return;
             }
-            runButton.disabled = false;
             const dbName = dbSelect.options[dbSelect.selectedIndex].value;
             selectedDb = dbName;
+            updateButton(); 
             let tablesReq = await fetch(`/layout/${selectedDb}`);
             if (tablesReq.ok) {
                 let dbLayout = await tablesReq.json();
@@ -131,17 +145,27 @@
             selectedLimit = limitSelect.options[limitSelect.selectedIndex].value;
         }
 
+        function setLoading(value, msg) {
+            loadingIndicator.style.display = value ? 'block' : 'none';
+            loadingMsg.innerText = msg;
+        }
+
+        function updateButton() {
+            runButton.disabled = isResetting || selectedDb == null;
+        }
+
         async function runSql() {
             const sqlInput = sqlInputfield.value;
             resultContainer.innerHTML = "";
-            loadingIndicator.style.display = "block";
-            console.log('limit is: ' + selectedLimit.toString());
+            setLoading(true, 'Je query wordt uitgevoerd..');
+            const readOnly = readonlyCheckbox.checked;
             const options = {
                 method: 'POST',
                 body: JSON.stringify({
                     db: selectedDb,
                     query: sqlInput,
                     limit: selectedLimit,
+                    readOnly: readOnly,
                 }),
                 headers: {
                     'Content-Type': 'application/json'
@@ -150,28 +174,33 @@
             const resRequest = await fetch('/run', options);
             if (resRequest.ok) {
                 const resJson = await resRequest.json();
-                loadingIndicator.style.display = "none";
+                setLoading(false);
                 if (resJson.succes) {
                     resultContainer.innerHTML = '';
                     const tbody = document.createElement('tbody');
                     tbody.className = 'tbody';
-                    const data = resJson.data;
-                    const itemCount = data.length;
-                    resultHeading.innerHTML = `Resultaat <small class="text-muted fs-6">${itemCount} items</small>`;
-
-                    for (let row in resJson.data) {
-                        const tableRow = document.createElement('tr');
-                        const rowVal = data[row];
-                        for (let col in rowVal) {
-                            const tableCol = document.createElement('td');
-                            const colVal = rowVal[col];
-                            tableCol.innerHTML = colVal;
-                            tableRow.appendChild(tableCol);
-                        }
-                        tbody.appendChild(tableRow);
+                    if (!resJson.hasData) {
+                        resultContainer.innerHTML = `<div class="alert alert-success" role="alert">Query succesfol uitgevoerd - geen resultaten.</div>`;
                     }
-                    resultContainer.innerHTML += `<table class="table  table-sm table-bordered table-striped">${tbody.outerHTML}</table>`;
-                    resultHeading.scrollIntoView()
+                    else {
+                        const data = resJson.data;
+                        const itemCount = data.length;
+                        resultHeading.innerHTML = `Resultaat <small class="text-muted fs-6">${itemCount} items</small>`;
+
+                        for (let row in resJson.data) {
+                            const tableRow = document.createElement('tr');
+                            const rowVal = data[row];
+                            for (let col in rowVal) {
+                                const tableCol = document.createElement('td');
+                                const colVal = rowVal[col];
+                                tableCol.innerHTML = colVal;
+                                tableRow.appendChild(tableCol);
+                            }
+                            tbody.appendChild(tableRow);
+                        }
+                        resultContainer.innerHTML += `<table class="table  table-sm table-bordered table-striped">${tbody.outerHTML}</table>`;
+                        resultHeading.scrollIntoView();
+                    }
                 }
                 else {
                     resultContainer.innerHTML =
@@ -180,6 +209,21 @@
                     ${resJson.error}
                     </div>`;
                 }
+            }
+        }
+
+        async function resetDbs() {
+            resultContainer.innerHTML = '';  
+            setLoading(true, 'Databases resetten.. Dit kan even duren.');
+            isResetting = true;
+            updateButton();
+            const resetRequest = await fetch('/reset', { method: 'POST' });
+            await getDatabases();
+            setLoading(false);
+            isResetting = false;
+            updateButton();
+            if (resetRequest.ok) {
+                resultContainer.innerHTML = '<div class="alert alert-success" role="alert">De databases zijn succesvol gereset!</div>';
             }
         }
         getDatabases();

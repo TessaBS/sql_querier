@@ -1,14 +1,20 @@
 const express = require('express')
-const fs = require('fs');
 const mysql = require('mysql2');
+const cp = require("child_process");
+
 const app = express();
 
 const hostname = '127.0.0.1';
 const port = 1700;
 
-const dbConnection = mysql.createConnection({
+const rootDbConn = mysql.createConnection({
     host: 'localhost',
     user: 'root',
+    rowsAsArray: true
+});
+const readDbConn = mysql.createConnection({
+    host: 'localhost',
+    user: 'read',
     rowsAsArray: true
 });
 
@@ -16,26 +22,27 @@ app.use(express.static('public'))
 app.use(express.json());
 
 app.get('/databases', (req, res) => {
-    const files = fs.readdirSync('./../databases');
-    var dbNames = [];
-    files.forEach(file => {
-        dbNames.push(file.split('.')[0]);
+    rootDbConn.query(`SHOW databases`, (err, results) => {
+        if (err == null) {
+            // Hide default MySQL databases.
+            results = results.filter(i => i != 'information_schema' && i != 'performance_schema' && i != 'mysql' && i != 'sys');
+            res.json(results);
+        }
     });
-    res.json(dbNames)
 });
 
 app.get('/layout/:db', (req, res) => {
     const dbName = req.params["db"];
-    dbConnection.query(`USE ${dbName}`, (useErr) => {
+    rootDbConn.query(`USE ${dbName}`, (useErr) => {
         if (useErr == null) {
-            dbConnection.query('SHOW tables', (tableErr, results) => {
+            rootDbConn.query('SHOW tables', (tableErr, results) => {
                 if (tableErr == null) {
                     var tableNames = [];
                     var promises = [];
                     results.forEach(arr => {
                         const tableName = arr[0];
                         tableNames.push(tableName);
-                        promises.push(new Promise((resolve, reject) => dbConnection.query(
+                        promises.push(new Promise((resolve, reject) => rootDbConn.query(
                             `SELECT COLUMN_NAME, DATA_TYPE
                             FROM INFORMATION_SCHEMA.COLUMNS
                             WHERE
@@ -70,22 +77,41 @@ app.get('/layout/:db', (req, res) => {
     });
 });
 
-app.post('/run', async (req, res) => {
+app.post('/run', (req, res) => {
     const dbName = req.body["db"];
     const query = req.body["query"];
     const limit = req.body["limit"];
-    dbConnection.query(`USE ${dbName}`, (useErr) => {
+    const readOnly = req.body["readOnly"];
+
+    let dbConn;
+    if (!readOnly) {
+        dbConn = rootDbConn;
+    } else {
+        dbConn = readDbConn;
+    }
+
+    dbConn.query(`USE ${dbName}`, (useErr) => {
         if (useErr == null) {
-            dbConnection.query(query, (queryErr, results) => {
+            dbConn.query(query, (queryErr, results) => {
                 if (queryErr == null) {
-                    res.json({
-                        succes: true,
-                        data: results.slice(0, limit),
-                    });
+                    if (Array.isArray(results)) {
+                        res.json({
+                            succes: true,
+                            hasData: true,
+                            data: results = results.slice(0, limit)
+                        });
+                    }
+                    else {
+                        res.json({
+                            succes: true,
+                            hasData: false,
+                        });
+                    }
                 }
                 else {
                     res.json({
                         succes: false,
+                        hasData: false,
                         error: queryErr.message,
                     });
                 }
@@ -94,13 +120,27 @@ app.post('/run', async (req, res) => {
         else {
             res.json({
                 succes: false,
-                error: "Error while opening database!",
+                error: useErr.message,
             });
         }
     });
 });
 
+app.post('/reset', async (req, res) => {
+    cp.exec('cd .. && ./scripts/reset_dbs.sh', (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error}`);              
+            res.status(500).send();
+        }
+        if (stderr) {
+            console.log(`ST Error: ${stderr}`);
+            res.status(500).send();
+        }
+        res.send();
+    });
+});
+
 app.listen(port, hostname, () => {
-    console.log(`Started server at ${hostname}:${port}.`)
-    console.log(`\nDRUK OP DE VOLGENDE LINK OM TE OPENEN: http://${hostname}:${port} (als hij niet automatisch opent)`)
+    console.log(`Querier gestart op ${hostname}:${port}`)
+    console.log(`Druk op de volgende link om te openen: http://${hostname}:${port} (als hij niet automatisch opent)`)
 });

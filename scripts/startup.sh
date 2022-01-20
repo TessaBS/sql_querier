@@ -12,8 +12,8 @@ Door: Rijk van Putten
 
 echo "Starting MySQL server.."               
 ./scripts/start_mysql.sh
-echo "Importing MySQL databases.."
-./scripts/import_dbs.sh
+echo "Importing/resetting MySQL databases.."
+./scripts/reset_dbs.sh
 
 cd ./querier
 echo "Downloading Node.js packages.."
