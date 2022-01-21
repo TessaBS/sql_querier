@@ -92,12 +92,18 @@ app.post('/run', (req, res) => {
 
     dbConn.query(`USE ${dbName}`, (useErr) => {
         if (useErr == null) {
-            dbConn.query(query, (queryErr, results) => {
+            dbConn.query(query, (queryErr, results, columns) => {
                 if (queryErr == null) {
+                    headers = [];
+                    columns.forEach(c => {
+                        headers.push(c.name);
+                        console.log(c.name);
+                    });
                     if (Array.isArray(results)) {
                         res.json({
                             succes: true,
                             hasData: true,
+                            headers: headers,
                             data: results = results.slice(0, limit)
                         });
                     }

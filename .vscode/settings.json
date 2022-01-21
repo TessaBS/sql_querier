@@ -11,5 +11,7 @@
     },
     "workbench.colorTheme": "One Dark Pro Flat",
     "workbench.preferredDarkColorTheme": "One Dark Pro Flat",
-    "workbench.preferredLightColorTheme": "One Dark Pro Flat"
+    "workbench.preferredLightColorTheme": "One Dark Pro Flat",
+    "redhat.telemetry.enabled": false,
+    "editor.fontSize": 16
 }

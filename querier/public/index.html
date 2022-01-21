@@ -111,7 +111,7 @@
             }
             const dbName = dbSelect.options[dbSelect.selectedIndex].value;
             selectedDb = dbName;
-            updateButton(); 
+            updateButton();
             let tablesReq = await fetch(`/layout/${selectedDb}`);
             if (tablesReq.ok) {
                 let dbLayout = await tablesReq.json();
@@ -147,7 +147,7 @@
 
         function setLoading(value, msg) {
             loadingIndicator.style.display = value ? 'block' : 'none';
-            loadingMsg.innerText = msg;
+            loadingMsg.innerHTML = msg;
         }
 
         function updateButton() {
@@ -177,28 +177,42 @@
                 setLoading(false);
                 if (resJson.succes) {
                     resultContainer.innerHTML = '';
-                    const tbody = document.createElement('tbody');
-                    tbody.className = 'tbody';
                     if (!resJson.hasData) {
                         resultContainer.innerHTML = `<div class="alert alert-success" role="alert">Query succesfol uitgevoerd - geen resultaten.</div>`;
                     }
                     else {
-                        const data = resJson.data;
-                        const itemCount = data.length;
+
+                        // Heading
+                        const itemCount = resJson.data.length;
                         resultHeading.innerHTML = `Resultaat <small class="text-muted fs-6">${itemCount} items</small>`;
 
+                        // Header table
+                        const tableHeader = document.createElement('thead');
+                        const headerRow = document.createElement('tr');
+                        for (let header in resJson.headers) {
+                            const headerElement = document.createElement('th');
+                            const headerValue = resJson.headers[header];
+                            headerElement.innerHTML = headerValue;
+                            headerRow.appendChild(headerElement);
+                        }
+                        tableHeader.appendChild(headerRow);
+
+                        // Body table
+                        const tableBody = document.createElement('tbody');
                         for (let row in resJson.data) {
                             const tableRow = document.createElement('tr');
-                            const rowVal = data[row];
+                            const rowVal = resJson.data[row];
                             for (let col in rowVal) {
-                                const tableCol = document.createElement('td');
+                                const tableElement = document.createElement('td');
                                 const colVal = rowVal[col];
-                                tableCol.innerHTML = colVal;
-                                tableRow.appendChild(tableCol);
+                                tableElement.innerHTML = colVal;
+                                tableRow.appendChild(tableElement);
                             }
-                            tbody.appendChild(tableRow);
+                            tableBody.appendChild(tableRow);
                         }
-                        resultContainer.innerHTML += `<table class="table  table-sm table-bordered table-striped">${tbody.outerHTML}</table>`;
+
+                        // Apply
+                        resultContainer.innerHTML += `<table class="table  table-sm table-bordered table-striped">${tableHeader.outerHTML}${tableBody.outerHTML}</table>`;
                         resultHeading.scrollIntoView();
                     }
                 }
@@ -213,7 +227,7 @@
         }
 
         async function resetDbs() {
-            resultContainer.innerHTML = '';  
+            resultContainer.innerHTML = '';
             setLoading(true, 'Databases resetten.. Dit kan even duren.');
             isResetting = true;
             updateButton();
