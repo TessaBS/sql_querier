@@ -80,8 +80,9 @@ app.get('/layout/:db', (req, res) => {
 app.post('/run', (req, res) => {
     const dbName = req.body["db"];
     const query = req.body["query"];
-    const limit = req.body["limit"];
+    const pageSize = req.body["pageSize"];
     const readOnly = req.body["readOnly"];
+    const page = req.body["page"];
 
     let dbConn;
     if (!readOnly) {
@@ -95,16 +96,25 @@ app.post('/run', (req, res) => {
             dbConn.query(query, (queryErr, results, columns) => {
                 if (queryErr == null) {
                     if (Array.isArray(results)) {
-                        headers = [];
+                        var headers = [];
                         columns.forEach(c => {
                             headers.push(c.name);
-                            console.log(c.name);
                         });
+                        const count = results.length;
+                        const pageCount = parseInt(Math.ceil(count / pageSize));
+                        console.log(`Page count ${pageCount}`);
+                        const from = page * pageSize;
+                        const to = page * pageSize + pageSize;
+                        const data = results.slice(from, to);
                         res.json({
                             succes: true,
                             hasData: true,
+                            count: count,
+                            pageCount: pageCount,
+                            from: from,
+                            to: to,
                             headers: headers,
-                            data: results = results.slice(0, limit)
+                            data: data,
                         });
                     }
                     else {

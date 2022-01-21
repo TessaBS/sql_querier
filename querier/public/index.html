@@ -29,10 +29,10 @@
         </div>
         <h2>Invoer</h2>
         <div class="my-4">
-            <textarea id="sql-input" name="sql-input" class="form-control mb-3 font-monospace fs-5" rows="8"
+            <textarea id="sql-input" name="sql-input" class="form-control mb-3 font-monospace fs-5" rows="6"
                 placeholder="Type hier een SQL query.."></textarea>
             <div class="input-group mb-3">
-                <span class="input-group-text">Max. resultaten</span>
+                <span class="input-group-text">Resultaten per pagina</span>
                 <select id="limit-select" name="limit-select" class="from-control form-select ">
                     <option value=100 selected>100</option>
                     <option value=200>200</option>
@@ -47,8 +47,13 @@
             <button id="run-button" class="btn btn-primary" disabled>Uitvoeren</button>
             <button id="reset-button" class="btn btn-outline-secondary ms-2">Reset databases</button>
         </div>
-        <h2 id="result-heading">Resultaat</h2>
+        <h2 id="result-heading">Resultaten</h2>
         <div class="my-4">
+            <nav>
+                <ul class="pagination" id="page-nav">
+                  
+                </ul>
+            </nav>
             <div id="result-container">
                 <div class="alert alert-info" role="alert">
                     Nog geen query uitvegoerd.
@@ -60,12 +65,16 @@
                     <div class="spinner-border ms-auto" role="status" aria-hidden="true"></div>
                 </div>
             </div>
+        </div>
+       
     </main>
     <script>
         var dbList = [];
         var selectedDb;
         var isResetting = false;
         var selectedLimit = 100;
+        var selectedPage = 0;
+        var pageCount = 0;
 
         const dbSelect = document.getElementById('db-select');
         const sqlInputfield = document.getElementById('sql-input');
@@ -79,6 +88,7 @@
         const resultContainer = document.getElementById('result-container');
         const loadingIndicator = document.getElementById('loading-indicator');
         const loadingMsg = document.getElementById('loading-msg');
+        const pageNav = document.getElementById('page-nav');
 
 
 
@@ -108,6 +118,8 @@
             }
             const dbName = dbSelect.options[dbSelect.selectedIndex].value;
             selectedDb = dbName;
+            selectedPage = 0;
+            pageCount = 0;
             updateButton();
             let tablesReq = await fetch(`/layout/${selectedDb}`);
             if (tablesReq.ok) {
@@ -120,7 +132,7 @@
 
                     const headerElement = document.createElement('div');
                     headerElement.innerHTML = tableInfo.name;
-                    headerElement.style.width = '100px';
+                    headerElement.style.minWidth = '80px';
                     headerElement.className = 'fw-bold py-1 px-2 m-1';
                     tableInfoContainer.appendChild(headerElement);
 
@@ -151,6 +163,65 @@
             runButton.disabled = isResetting || selectedDb == null;
         }
 
+        function previousPage() {
+            selectedPage--;
+            runSql();
+        }
+
+        function nextPage() {
+            selectedPage++;
+            runSql();
+        }
+
+        function openPage(pageNum) {
+            selectedPage = pageNum - 1;
+            runSql();
+        }
+
+        function openLastPage() {
+            selectedPage = pageCount -1;
+            runSql();
+        }
+
+        function updatePageNav() {
+            pageNav.innerHTML = '';
+            if (pageCount > 0) {
+                pageNav.innerHTML += `
+                <li class="page-item ${selectedPage == 0 ? 'disabled' : ''}">
+                    <a role="button" class="page-link" onclick="openPage(1)" title="Eerste">
+                        <span>&laquo;</span>
+                    </a>
+                </li>`;
+                pageNav.innerHTML += `
+                <li class="page-item ${selectedPage == 0 ? 'disabled' : ''}">
+                    <a role="button" class="page-link" onclick="previousPage()" title="Vorige">
+                        <span>&lt;</span>
+                    </a>
+                </li>`;
+                const range = 3;
+                const start = Math.max(1, selectedPage + 1 - range);
+                const end = Math.min(start + 2 * range, pageCount);
+                for (let i = start; i <= end; i++) {
+                    pageNav.innerHTML += `
+                    <li class="page-item ${i == selectedPage + 1 ? 'active' : ''}" title="Pagina ${i}">
+                        <a role="button" class="page-link" onclick="openPage(${i})">${i}</a>
+                    </li>`;
+                }
+                pageNav.innerHTML += `
+                <li class="page-item ${selectedPage == pageCount-1 ? 'disabled' : ''}">
+                    <a role="button" class="page-link" onclick="nextPage()" title="Volgende">
+                        <span>&gt;</span>
+                    </a>
+                </li>`;
+                pageNav.innerHTML += `
+                <li class="page-item ${selectedPage == pageCount-1 ? 'disabled' : ''}">
+                    <a role="button" class="page-link" onclick="openLastPage()" title="Laatste">
+                        <span>&raquo;</span>
+                    </a>
+                </li>`;
+            }
+        }
+
         async function runSql() {
             const sqlInput = sqlInputfield.value;
             resultContainer.innerHTML = "";
@@ -161,8 +232,9 @@
                 body: JSON.stringify({
                     db: selectedDb,
                     query: sqlInput,
-                    limit: selectedLimit,
+                    pageSize: selectedLimit,
                     readOnly: readOnly,
+                    page: selectedPage,
                 }),
                 headers: {
                     'Content-Type': 'application/json'
@@ -178,10 +250,10 @@
                         resultContainer.innerHTML = `<div class="alert alert-success" role="alert">Query succesfol uitgevoerd - geen resultaten.</div>`;
                     }
                     else {
-
                         // Heading
-                        const itemCount = resJson.data.length;
-                        resultHeading.innerHTML = `Resultaat <small class="text-muted fs-6">${itemCount} items</small>`;
+                        pageCount = resJson.pageCount;
+                        resultHeading.innerHTML = `Resultaat <small class="text-muted fs-6">${resJson.count} items</small>`;
+                        resultContainer.innerHTML += `<p class="text-muted">Resultaten ${resJson.from + 1} t/m ${resJson.to}, pagina ${selectedPage + 1} van ${resJson.pageCount}.</p>`;
 
                         // Header table
                         const tableHeader = document.createElement('thead');
@@ -220,6 +292,7 @@
                     </div>`;
                 }
             }
+            updatePageNav();
         }
 
         async function resetDbs() {
@@ -237,6 +310,7 @@
             }
         }
         getDatabases();
+        updatePageNav();
     </script>
 </body>
 
