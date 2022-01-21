@@ -94,12 +94,12 @@ app.post('/run', (req, res) => {
         if (useErr == null) {
             dbConn.query(query, (queryErr, results, columns) => {
                 if (queryErr == null) {
-                    headers = [];
-                    columns.forEach(c => {
-                        headers.push(c.name);
-                        console.log(c.name);
-                    });
                     if (Array.isArray(results)) {
+                        headers = [];
+                        columns.forEach(c => {
+                            headers.push(c.name);
+                            console.log(c.name);
+                        });
                         res.json({
                             succes: true,
                             hasData: true,
