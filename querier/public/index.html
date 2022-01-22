@@ -51,7 +51,6 @@
         <div class="my-4">
             <nav>
                 <ul class="pagination" id="page-nav">
-                  
                 </ul>
             </nav>
             <div id="result-container">
@@ -152,6 +151,7 @@
 
         function changeLimit() {
             selectedLimit = limitSelect.options[limitSelect.selectedIndex].value;
+            selectedPage = 0;
         }
 
         function setLoading(value, msg) {

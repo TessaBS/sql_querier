@@ -80,9 +80,9 @@ app.get('/layout/:db', (req, res) => {
 app.post('/run', (req, res) => {
     const dbName = req.body["db"];
     const query = req.body["query"];
-    const pageSize = req.body["pageSize"];
+    const pageSize = parseInt(req.body["pageSize"]);
     const readOnly = req.body["readOnly"];
-    const page = req.body["page"];
+    const page = parseInt(req.body["page"]);
 
     let dbConn;
     if (!readOnly) {
@@ -102,9 +102,8 @@ app.post('/run', (req, res) => {
                         });
                         const count = results.length;
                         const pageCount = parseInt(Math.ceil(count / pageSize));
-                        console.log(`Page count ${pageCount}`);
                         const from = page * pageSize;
-                        const to = page * pageSize + pageSize;
+                        const to = Math.min(page * pageSize + pageSize, count);
                         const data = results.slice(from, to);
                         res.json({
                             succes: true,
