@@ -144,7 +144,7 @@ app.post('/run', (req, res) => {
 app.post('/reset', async (req, res) => {
     cp.exec('cd .. && ./scripts/reset_dbs.sh', (error, stdout, stderr) => {
         if (error) {
-            console.log(`Error: ${error}`);              
+            console.log(`Error: ${error}`);
             res.status(500).send();
         }
         if (stderr) {
@@ -152,6 +152,57 @@ app.post('/reset', async (req, res) => {
             res.status(500).send();
         }
         res.send();
+    });
+});
+
+app.get('/export/:db/:query/:filename.:format', (req, res) => {
+    const dbName = req.params["db"];
+    const query = req.params["query"];
+    const format = req.params["format"];
+
+    readDbConn.query(`USE ${dbName}`, (useErr) => {
+        if (useErr == null) {
+            readDbConn.query(query, (queryErr, results, columns) => {
+                if (queryErr == null) {
+                    if (Array.isArray(results)) {
+                        var headers = [];
+                        columns.forEach(c => {
+                            headers.push(c.name);
+                        });
+                        if (format == 'csv') {
+                            var file = '';
+                            headers.forEach(col => {
+                                file += col;
+                                file += ',';
+                            });
+                            file += '\n';
+                            results.forEach(row => {
+                                row.forEach(col => {
+                                    file += col;
+                                    file += ',';
+                                });
+                                file += '\n';
+                            });
+                            res.set('Content-Type', 'text/csv').send(file);
+                        } else if (format == 'json') {
+                            res.json(results);
+                        }
+                        else {
+                            res.status(500).send();
+                        }
+                    }
+                    else {
+                        res.status(500).send();
+                    }
+                }
+                else {
+                    res.status(500).send();
+                }
+            });
+        }
+        else {
+            res.status(500).send();
+        }
     });
 });
 
