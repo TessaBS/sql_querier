@@ -17,42 +17,46 @@
         </p>
     </header>
     <main class="mx-md-5">
-        <h2>Database</h2>
-        <div class="my-4">
-            <div class="input-group mb-3">
-                <span class="input-group-text">Database</span>
-                <select id="db-select" name="db-select" class="from-control form-select ">
-                    <option>Laden..</option>
-                </select>
+        <div class="row my-4">
+            <div class="col">
+                <h2>Database</h2>
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Database</span>
+                    <select id="db-select" name="db-select" class="from-control form-select ">
+                        <option>Laden..</option>
+                    </select>
+                </div>
+                <div id="layout-container"></div>
             </div>
-            <div id="layout-container" class="mb-3"></div>
+            <div class="col">
+                <h2>Invoer</h2>
+                <textarea id="sql-input" name="sql-input" class="form-control mb-3 font-monospace fs-5" rows="6"
+                    placeholder="Type hier een SQL query.."></textarea>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="readonly-checkbox" checked>
+                    <label class="form-check-label" for="flexCheckDefault">Alleen lezen</label>
+                </div>
+                <button id="run-button" class="btn btn-primary" disabled>Uitvoeren</button>
+                <button id="reset-button" class="btn btn-outline-secondary ms-2">Reset databases</button>
+            </div>
         </div>
-        <h2>Invoer</h2>
         <div class="my-4">
-            <textarea id="sql-input" name="sql-input" class="form-control mb-3 font-monospace fs-5" rows="6"
-                placeholder="Type hier een SQL query.."></textarea>
-            <div class="input-group mb-3">
-                <span class="input-group-text">Resultaten per pagina</span>
-                <select id="limit-select" name="limit-select" class="from-control form-select ">
-                    <option value=100 selected>100</option>
-                    <option value=200>200</option>
-                    <option value=500>500</option>
-                    <option value=1000>1000</option>
-                </select>
+            <h2>Resultaten</h2>
+            <p id="result-info" class="text-muted"></p>
+            <div class="btn-toolbar justify-content-between mb-3">
+                <div id="page-nav" class="btn-group">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text">Pagina grootte</span>
+                    <select id="limit-select" name="limit-select" class="from-control form-select ">
+                        <option value=100 selected>100</option>
+                        <option value=200>200</option>
+                        <option value=500>500</option>
+                        <option value=1000>1000</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-check mb-3">
-                <input type="checkbox" class="form-check-input" id="readonly-checkbox" checked>
-                <label class="form-check-label" for="flexCheckDefault">Alleen lezen</label>
-            </div>
-            <button id="run-button" class="btn btn-primary" disabled>Uitvoeren</button>
-            <button id="reset-button" class="btn btn-outline-secondary ms-2">Reset databases</button>
-        </div>
-        <h2 id="result-heading">Resultaten</h2>
-        <div class="my-4">
-            <nav>
-                <ul class="pagination" id="page-nav">
-                </ul>
-            </nav>
             <div id="result-container">
                 <div class="alert alert-info" role="alert">
                     Nog geen query uitvegoerd.
@@ -65,7 +69,7 @@
                 </div>
             </div>
         </div>
-       
+
     </main>
     <script>
         var dbList = [];
@@ -83,8 +87,8 @@
         const resetButton = document.getElementById('reset-button');
 
         const layoutContainer = document.getElementById('layout-container');
-        const resultHeading = document.getElementById('result-heading');
         const resultContainer = document.getElementById('result-container');
+        const resultInfo = document.getElementById('result-info');
         const loadingIndicator = document.getElementById('loading-indicator');
         const loadingMsg = document.getElementById('loading-msg');
         const pageNav = document.getElementById('page-nav');
@@ -152,6 +156,7 @@
         function changeLimit() {
             selectedLimit = limitSelect.options[limitSelect.selectedIndex].value;
             selectedPage = 0;
+            runSql();
         }
 
         function setLoading(value, msg) {
@@ -179,46 +184,38 @@
         }
 
         function openLastPage() {
-            selectedPage = pageCount -1;
+            selectedPage = pageCount - 1;
             runSql();
         }
 
         function updatePageNav() {
             pageNav.innerHTML = '';
-            if (pageCount > 0) {
+            if (pageCount > 1) {
                 pageNav.innerHTML += `
-                <li class="page-item ${selectedPage == 0 ? 'disabled' : ''}">
-                    <a role="button" class="page-link" onclick="openPage(1)" title="Eerste">
-                        <span>&laquo;</span>
-                    </a>
-                </li>`;
+                <a role="button" class="btn btn-outline-secondary ${selectedPage == 0 ? 'disabled' : ''}" onclick="openPage(1)" title="Eerste">
+                   &laquo;
+                </a>`;
                 pageNav.innerHTML += `
-                <li class="page-item ${selectedPage == 0 ? 'disabled' : ''}">
-                    <a role="button" class="page-link" onclick="previousPage()" title="Vorige">
-                        <span>&lt;</span>
-                    </a>
-                </li>`;
-                const range = 3;
+                <a role="button" class="btn btn-outline-secondary ${selectedPage == 0 ? 'disabled' : ''}" onclick="previousPage()" title="Vorige">
+                   &lt;
+                </a>`;
+                const range = 2;
                 const start = Math.max(1, selectedPage + 1 - range);
                 const end = Math.min(start + 2 * range, pageCount);
                 for (let i = start; i <= end; i++) {
                     pageNav.innerHTML += `
-                    <li class="page-item ${i == selectedPage + 1 ? 'active' : ''}" title="Pagina ${i}">
-                        <a role="button" class="page-link" onclick="openPage(${i})">${i}</a>
-                    </li>`;
+                    <a role="button" class="btn btn-outline-secondary ${i == selectedPage + 1 ? 'active' : ''}" onclick="openPage(${i})" title="Pagina ${i}">
+                      ${i}
+                    </a>`;
                 }
                 pageNav.innerHTML += `
-                <li class="page-item ${selectedPage == pageCount-1 ? 'disabled' : ''}">
-                    <a role="button" class="page-link" onclick="nextPage()" title="Volgende">
-                        <span>&gt;</span>
-                    </a>
-                </li>`;
+                <a role="button" class="btn btn-outline-secondary ${selectedPage == pageCount - 1 ? 'disabled' : ''}" onclick="nextPage()" title="Volgende">
+                    &gt;
+                </a>`;
                 pageNav.innerHTML += `
-                <li class="page-item ${selectedPage == pageCount-1 ? 'disabled' : ''}">
-                    <a role="button" class="page-link" onclick="openLastPage()" title="Laatste">
-                        <span>&raquo;</span>
-                    </a>
-                </li>`;
+                <a role="button" class="btn btn-outline-secondary ${selectedPage == pageCount - 1 ? 'disabled' : ''}" onclick="openLastPage()" title="Laatste">
+                    &raquo;
+                </a>`;
             }
         }
 
@@ -252,8 +249,7 @@
                     else {
                         // Heading
                         pageCount = resJson.pageCount;
-                        resultHeading.innerHTML = `Resultaat <small class="text-muted fs-6">${resJson.count} items</small>`;
-                        resultContainer.innerHTML += `<p class="text-muted">Resultaten ${resJson.from + 1} t/m ${resJson.to}, pagina ${selectedPage + 1} van ${resJson.pageCount}.</p>`;
+                        resultInfo.innerHTML = `Totaal ${resJson.count} items, weergave ${resJson.from + 1} t/m ${resJson.to}, pagina ${selectedPage + 1} van ${resJson.pageCount}.`;
 
                         // Header table
                         const tableHeader = document.createElement('thead');
@@ -281,7 +277,6 @@
                         }
                         // Apply
                         resultContainer.innerHTML += `<table class="table  table-sm table-bordered table-striped">${tableHeader.outerHTML}${tableBody.outerHTML}</table>`;
-                        resultHeading.scrollIntoView();
                     }
                 }
                 else {
