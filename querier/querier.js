@@ -8,7 +8,7 @@ const port = 1700;
 
 async function main() {
     const app = express();
-    
+
     // MySQL connections
     const rootDbConn = await mysql.createConnection({
         host: 'localhost',
@@ -25,7 +25,7 @@ async function main() {
 
     // Serve static files from the public folder
     app.use(express.static('public'))
-    
+
     // Use JSON format
     app.use(express.json());
 
@@ -39,9 +39,8 @@ async function main() {
 
     // Layout: get the table columns and data types of the database
     app.get('/layout/:db', async (req, res) => {
-        const dbName = req.params["db"];
         // Select database
-        await rootDbConn.query(`USE ${dbName}`);
+        await rootDbConn.query(`USE ${req.params.db}`);
         // Get table names
         const [tableRows] = await rootDbConn.query('SHOW tables');
         // Get column name and data type for each table
@@ -82,38 +81,41 @@ async function main() {
                     error: queryErr.message,
                 });
             })
-            .then(([rows, fields]) => {
+            .then(result => {
                 // Query result without data
-                if (!Array.isArray(rows)) {
+                if (result == null || !Array.isArray(result[0]) || !Array.isArray(result[1])) {
                     res.json({
                         success: true,
                         hasData: false,
                     });
                 }
-                // Extract the column names from the query result
-                var columnNames = [];
-                fields.forEach(f => {
-                    columnNames.push(f.name);
-                });
-                // Calculate pagination
-                const pageSize = parseInt(req.body.pageSize);
-                const page = parseInt(req.body.page);        
-                const count = rows.length;
-                const pageCount = parseInt(Math.ceil(count / pageSize));
-                const from = page * pageSize;
-                const to = Math.min(page * pageSize + pageSize, count);
-                const data = rows.slice(from, to);
-                // Send result
-                res.json({
-                    success: true,
-                    hasData: true,
-                    count: count,
-                    pageCount: pageCount,
-                    from: from,
-                    to: to,
-                    headers: columnNames,
-                    data: data,
-                });
+                else {
+                    const [rows, fields] = result;
+                    // Extract the column names from the query result
+                    var columnNames = [];
+                    fields.forEach(f => {
+                        columnNames.push(f.name);
+                    });
+                    // Calculate pagination
+                    const pageSize = parseInt(req.body.pageSize);
+                    const page = parseInt(req.body.page);
+                    const count = rows.length;
+                    const pageCount = parseInt(Math.ceil(count / pageSize));
+                    const from = page * pageSize;
+                    const to = Math.min(page * pageSize + pageSize, count);
+                    const data = rows.slice(from, to);
+                    // Send result
+                    res.json({
+                        success: true,
+                        hasData: true,
+                        count: count,
+                        pageCount: pageCount,
+                        from: from,
+                        to: to,
+                        headers: columnNames,
+                        data: data,
+                    });
+                }
             });
     });
 
@@ -133,49 +135,50 @@ async function main() {
     });
 
     // Export: exports a query result to a file
-    app.get('/export/:db/:query/:filename.:format', (req, res) => {
+    app.get('/export/:db/:query/:filename.:format', async (req, res) => {
         // Select database
         await readDbConn.query(`USE ${req.params.db}`);
 
         // Execute the query
-        const [rows, fields] = readDbConn.query(req.params.query);
+        const [rows, fields] = await readDbConn.query(req.params.query);
 
-        if (!Array.isArray(rows)) {
+        if (!Array.isArray(rows) || !Array.isArray(fields)) {
             res.status(400).send('Query result has no rows!');
         }
+        else {
+            // Extract the column names from the query result
+            var columnNames = [];
+            fields.forEach(c => {
+                columnNames.push(c.name);
+            });
 
-        // Extract the column names from the query result
-        var columnNames = [];
-        fields.forEach(c => {
-            columnNames.push(c.name);
-        });
-
-        switch (req.params.format.toLowerCase()) {
-            // Comma Seperated File
-            case 'csv':
-                var file = '';
-                columnNames.forEach(col => {
-                    file += col;
-                    file += ',';
-                });
-                file += '\n';
-                rows.forEach(row => {
-                    row.forEach(col => {
+            switch (req.params.format.toLowerCase()) {
+                // Comma Seperated File
+                case 'csv':
+                    var file = '';
+                    columnNames.forEach(col => {
                         file += col;
                         file += ',';
                     });
                     file += '\n';
-                });
-                res.set('Content-Type', 'text/csv').send(file);
-                break;
-            // JavaScript Object Natation
-            case 'json':
-                // TODO: Reformat in columns?
-                res.json(rows);
-                break;
-            default:
-                res.status(404).send('Unkown file format!');
-                break;
+                    rows.forEach(row => {
+                        row.forEach(col => {
+                            file += col;
+                            file += ',';
+                        });
+                        file += '\n';
+                    });
+                    res.set('Content-Type', 'text/csv').send(file);
+                    break;
+                // JavaScript Object Natation
+                case 'json':
+                    // TODO: Reformat in columns?
+                    res.json(rows);
+                    break;
+                default:
+                    res.status(404).send('Unkown file format!');
+                    break;
+            }
         }
     });
 
