@@ -108,7 +108,7 @@ app.post('/run', (req, res) => {
                         const to = Math.min(page * pageSize + pageSize, count);
                         const data = results.slice(from, to);
                         res.json({
-                            succes: true,
+                            success: true,
                             hasData: true,
                             count: count,
                             pageCount: pageCount,
@@ -120,14 +120,14 @@ app.post('/run', (req, res) => {
                     }
                     else {
                         res.json({
-                            succes: true,
+                            success: true,
                             hasData: false,
                         });
                     }
                 }
                 else {
                     res.json({
-                        succes: false,
+                        success: false,
                         hasData: false,
                         error: queryErr.message,
                     });
@@ -136,7 +136,7 @@ app.post('/run', (req, res) => {
         }
         else {
             res.json({
-                succes: false,
+                success: false,
                 error: useErr.message,
             });
         }
