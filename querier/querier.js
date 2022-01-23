@@ -1,214 +1,189 @@
 const express = require('express')
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 const cp = require("child_process");
 
-const app = express();
-
+// Server settings 
 const hostname = '127.0.0.1';
 const port = 1700;
 
-const rootDbConn = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    rowsAsArray: true,
-    dateStrings: true
-});
-const readDbConn = mysql.createConnection({
-    host: 'localhost',
-    user: 'read',
-    rowsAsArray: true,
-    dateStrings: true
-});
-
-app.use(express.static('public'))
-app.use(express.json());
-
-app.get('/databases', (req, res) => {
-    rootDbConn.query(`SHOW databases`, (err, results) => {
-        if (err == null) {
-            // Hide default MySQL databases.
-            results = results.filter(i => i != 'information_schema' && i != 'performance_schema' && i != 'mysql' && i != 'sys');
-            res.json(results);
-        }
+async function main() {
+    const app = express();
+    
+    // MySQL connections
+    const rootDbConn = await mysql.createConnection({
+        host: 'localhost',
+        user: 'root',
+        rowsAsArray: true,
+        dateStrings: true
     });
-});
+    const readDbConn = await mysql.createConnection({
+        host: 'localhost',
+        user: 'read',
+        rowsAsArray: true,
+        dateStrings: true
+    });
 
-app.get('/layout/:db', (req, res) => {
-    const dbName = req.params["db"];
-    rootDbConn.query(`USE ${dbName}`, (useErr) => {
-        if (useErr == null) {
-            rootDbConn.query('SHOW tables', (tableErr, results) => {
-                if (tableErr == null) {
-                    var tableNames = [];
-                    var promises = [];
-                    results.forEach(arr => {
-                        const tableName = arr[0];
-                        tableNames.push(tableName);
-                        promises.push(new Promise((resolve, reject) => rootDbConn.query(
-                            `SELECT COLUMN_NAME, DATA_TYPE
-                            FROM INFORMATION_SCHEMA.COLUMNS
-                            WHERE
-                            TABLE_SCHEMA = Database()
-                            AND TABLE_NAME = '${tableName}'`,
-                            (columnErr, columnResults) => {
-                                if (columnErr == null) {
-                                    var columnNames = [];
-                                    columnResults.forEach(arr2 => {
-                                        columnNames.push(arr2);
-                                    });
-                                    resolve({
-                                        name: tableName,
-                                        columns: columnResults,
-                                    });
-                                }
-                            }))
-                        );
-                    });
-                    Promise.all(promises).then((value) => {
-                        res.json(value);
-                    });
-                }
-                else {
-                    res.status(500).send();
-                }
+    // Serve static files from the public folder
+    app.use(express.static('public'))
+    
+    // Use JSON format
+    app.use(express.json());
+
+    // databases: Get a list of the databases
+    app.get('/databases', async (_, res) => {
+        const [rows] = await rootDbConn.query('SHOW databases');
+        // Hide default MySQL databases.
+        const databases = rows.filter(i => i != 'information_schema' && i != 'performance_schema' && i != 'mysql' && i != 'sys');
+        res.json(databases);
+    });
+
+    // Layout: get the table columns and data types of the database
+    app.get('/layout/:db', async (req, res) => {
+        const dbName = req.params["db"];
+        // Select database
+        await rootDbConn.query(`USE ${dbName}`);
+        // Get table names
+        const [tableRows] = await rootDbConn.query('SHOW tables');
+        // Get column name and data type for each table
+        var tableLayouts = [];
+        for (let tableRow of tableRows) {
+            const tableName = tableRow[0];
+            const [rows] = await rootDbConn.query(
+                `SELECT COLUMN_NAME, DATA_TYPE
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = Database() AND TABLE_NAME = '${tableName}'
+            `);
+            tableLayouts.push({
+                name: tableName,
+                columns: rows,
             });
-        }
-        else {
-            res.status(500).send();
-        }
+        };
+        res.json(tableLayouts);
     });
-});
 
-app.post('/run', (req, res) => {
-    const dbName = req.body["db"];
-    const query = req.body["query"];
-    const pageSize = parseInt(req.body["pageSize"]);
-    const readOnly = req.body["readOnly"];
-    const page = parseInt(req.body["page"]);
+    // Run: execute a querry
+    app.post('/run', async (req, res) => {
+        let dbConn;
+        if (!req.body.readOnly) {
+            dbConn = rootDbConn;
+        } else {
+            dbConn = readDbConn;
+        }
 
-    let dbConn;
-    if (!readOnly) {
-        dbConn = rootDbConn;
-    } else {
-        dbConn = readDbConn;
-    }
-
-    dbConn.query(`USE ${dbName}`, (useErr) => {
-        if (useErr == null) {
-            dbConn.query(query, (queryErr, results, columns) => {
-                if (queryErr == null) {
-                    if (Array.isArray(results)) {
-                        var headers = [];
-                        columns.forEach(c => {
-                            headers.push(c.name);
-                        });
-                        const count = results.length;
-                        const pageCount = parseInt(Math.ceil(count / pageSize));
-                        const from = page * pageSize;
-                        const to = Math.min(page * pageSize + pageSize, count);
-                        const data = results.slice(from, to);
-                        res.json({
-                            success: true,
-                            hasData: true,
-                            count: count,
-                            pageCount: pageCount,
-                            from: from,
-                            to: to,
-                            headers: headers,
-                            data: data,
-                        });
-                    }
-                    else {
-                        res.json({
-                            success: true,
-                            hasData: false,
-                        });
-                    }
-                }
-                else {
+        // Select the database
+        await dbConn.query(`USE ${req.body.db}`);
+        // Execute the query
+        dbConn.query(req.body.query)
+            .catch(queryErr => {
+                // Send failed query result
+                res.json({
+                    success: false,
+                    hasData: false,
+                    error: queryErr.message,
+                });
+            })
+            .then(([rows, fields]) => {
+                // Query result without data
+                if (!Array.isArray(rows)) {
                     res.json({
-                        success: false,
+                        success: true,
                         hasData: false,
-                        error: queryErr.message,
                     });
                 }
+                // Extract the column names from the query result
+                var columnNames = [];
+                fields.forEach(f => {
+                    columnNames.push(f.name);
+                });
+                // Calculate pagination
+                const pageSize = parseInt(req.body.pageSize);
+                const page = parseInt(req.body.page);        
+                const count = rows.length;
+                const pageCount = parseInt(Math.ceil(count / pageSize));
+                const from = page * pageSize;
+                const to = Math.min(page * pageSize + pageSize, count);
+                const data = rows.slice(from, to);
+                // Send result
+                res.json({
+                    success: true,
+                    hasData: true,
+                    count: count,
+                    pageCount: pageCount,
+                    from: from,
+                    to: to,
+                    headers: columnNames,
+                    data: data,
+                });
             });
+    });
+
+    // Reset: executes the database reset script
+    app.post('/reset', async (req, res) => {
+        cp.exec('cd .. && ./scripts/reset_dbs.sh', (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error during reset: ${error}`);
+                res.status(500).send();
+            }
+            if (stderr) {
+                console.error(`Error during reset (STERR): ${stderr}`);
+                res.status(500).send();
+            }
+            res.send();
+        });
+    });
+
+    // Export: exports a query result to a file
+    app.get('/export/:db/:query/:filename.:format', (req, res) => {
+        // Select database
+        await readDbConn.query(`USE ${req.params.db}`);
+
+        // Execute the query
+        const [rows, fields] = readDbConn.query(req.params.query);
+
+        if (!Array.isArray(rows)) {
+            res.status(400).send('Query result has no rows!');
         }
-        else {
-            res.json({
-                success: false,
-                error: useErr.message,
-            });
+
+        // Extract the column names from the query result
+        var columnNames = [];
+        fields.forEach(c => {
+            columnNames.push(c.name);
+        });
+
+        switch (req.params.format.toLowerCase()) {
+            // Comma Seperated File
+            case 'csv':
+                var file = '';
+                columnNames.forEach(col => {
+                    file += col;
+                    file += ',';
+                });
+                file += '\n';
+                rows.forEach(row => {
+                    row.forEach(col => {
+                        file += col;
+                        file += ',';
+                    });
+                    file += '\n';
+                });
+                res.set('Content-Type', 'text/csv').send(file);
+                break;
+            // JavaScript Object Natation
+            case 'json':
+                // TODO: Reformat in columns?
+                res.json(rows);
+                break;
+            default:
+                res.status(404).send('Unkown file format!');
+                break;
         }
     });
-});
 
-app.post('/reset', async (req, res) => {
-    cp.exec('cd .. && ./scripts/reset_dbs.sh', (error, stdout, stderr) => {
-        if (error) {
-            console.log(`Error: ${error}`);
-            res.status(500).send();
-        }
-        if (stderr) {
-            console.log(`ST Error: ${stderr}`);
-            res.status(500).send();
-        }
-        res.send();
+    // Start the server
+    app.listen(port, hostname, () => {
+        console.log(`Querier gestart op ${hostname}:${port}`)
+        console.log(`Druk op de volgende link om te openen: http://${hostname}:${port} (als hij niet automatisch opent)`)
     });
-});
+}
 
-app.get('/export/:db/:query/:filename.:format', (req, res) => {
-    const dbName = req.params["db"];
-    const query = req.params["query"];
-    const format = req.params["format"];
-
-    readDbConn.query(`USE ${dbName}`, (useErr) => {
-        if (useErr == null) {
-            readDbConn.query(query, (queryErr, results, columns) => {
-                if (queryErr == null) {
-                    if (Array.isArray(results)) {
-                        var headers = [];
-                        columns.forEach(c => {
-                            headers.push(c.name);
-                        });
-                        if (format == 'csv') {
-                            var file = '';
-                            headers.forEach(col => {
-                                file += col;
-                                file += ',';
-                            });
-                            file += '\n';
-                            results.forEach(row => {
-                                row.forEach(col => {
-                                    file += col;
-                                    file += ',';
-                                });
-                                file += '\n';
-                            });
-                            res.set('Content-Type', 'text/csv').send(file);
-                        } else if (format == 'json') {
-                            res.json(results);
-                        }
-                        else {
-                            res.status(500).send();
-                        }
-                    }
-                    else {
-                        res.status(500).send();
-                    }
-                }
-                else {
-                    res.status(500).send();
-                }
-            });
-        }
-        else {
-            res.status(500).send();
-        }
-    });
-});
-
-app.listen(port, hostname, () => {
-    console.log(`Querier gestart op ${hostname}:${port}`)
-    console.log(`Druk op de volgende link om te openen: http://${hostname}:${port} (als hij niet automatisch opent)`)
-});
+main();
