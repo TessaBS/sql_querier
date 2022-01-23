@@ -10,12 +10,14 @@ const port = 1700;
 const rootDbConn = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    rowsAsArray: true
+    rowsAsArray: true,
+    dateStrings: true
 });
 const readDbConn = mysql.createConnection({
     host: 'localhost',
     user: 'read',
-    rowsAsArray: true
+    rowsAsArray: true,
+    dateStrings: true
 });
 
 app.use(express.static('public'))
