@@ -45,8 +45,8 @@
             </div>
         </div>
         <div class="my-4">
-            <h2 class="mb-3">Resultaten</h2>
-            <div class="row">
+            <h2>Resultaten</h2>
+            <div class="row mb-3">
                 <div id="result-info-container" class="col" style="display: none;">
                     <div id="result-stats" class="row"></div>
                     <div class="btn-toolbar justify-content-between mb-3">
@@ -219,6 +219,7 @@
 
         function restoreQuery(query) {
             queryInput.value = query;
+            selectedPage = 0;
         }
 
         // View
@@ -326,8 +327,15 @@
                    &lt;
                 </a>`;
                 const range = 2;
-                const start = Math.max(1, selectedPage + 1 - range);
-                const end = Math.min(start + 2 * range, pageCount);
+                var start = selectedPage + 1 - range;
+                var end = start + 2 * range;
+                if (start <= 1) {
+                    start = 1;
+                    end = start + 2 * range;
+                } else if (end >= pageCount) {
+                    end = pageCount;
+                    start = (pageCount - range * 2);
+                }
                 for (let i = start; i <= end; i++) {
                     pageNav.innerHTML += `
                     <a role="button" class="btn btn-outline-secondary ${i == selectedPage + 1 ? 'active' : ''}" onclick="openPage(${i})" title="Pagina ${i}">
@@ -364,7 +372,7 @@
                 historyElement.title = 'Query herstellen';
                 historyElement.setAttribute('data-bs-toggle', 'tooltip');
                 historyElement.setAttribute('data-bs-placement', 'top');
-                historyElement.innerHTML = `<td><code>${result[0]}</code></td><td>${result[1] ? result[2] : '-'}</td>`;
+                historyElement.innerHTML = `<td><code>${result[0]}</code></td><td>${result[1] && result[2] != null ? result[2] : '-'}</td>`;
                 historyElement.className = result[1] ? 'table-success' : 'table-danger';
                 historyElement.addEventListener('click', () => {
                     restoreQuery(result[0]);

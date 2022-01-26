@@ -70,7 +70,13 @@ async function main() {
         }
 
         // Select the database
-        let useResult = await dbConn.query(`USE ${req.body.db}`);
+        let useResult = await dbConn.query(`USE ${req.body.db}`).catch(useErr => {
+            res.json({
+                success: false,
+                hasData: false,
+                error: useErr.message,
+            });
+        });
         // Execute the query
         if (useResult == null) {
             next();
