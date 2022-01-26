@@ -61,7 +61,7 @@ async function main() {
     });
 
     // Run: execute a querry
-    app.post('/run', async (req, res) => {
+    app.post('/run', async (req, res, next) => {
         let dbConn;
         if (!req.body.readOnly) {
             dbConn = rootDbConn;
@@ -70,53 +70,60 @@ async function main() {
         }
 
         // Select the database
-        await dbConn.query(`USE ${req.body.db}`);
+        let useResult = await dbConn.query(`USE ${req.body.db}`);
         // Execute the query
-        dbConn.query(req.body.query)
-            .catch(queryErr => {
-                // Send failed query result
-                res.json({
-                    success: false,
-                    hasData: false,
-                    error: queryErr.message,
-                });
-            })
-            .then(result => {
-                // Query result without data
-                if (result == null || !Array.isArray(result[0]) || !Array.isArray(result[1])) {
+        if (useResult == null) {
+            next();
+        } else {
+            dbConn.query(req.body.query)
+                .catch(queryErr => {
+                    // Send failed query result
                     res.json({
-                        success: true,
+                        success: false,
                         hasData: false,
+                        error: queryErr.message,
                     });
-                }
-                else {
-                    const [rows, fields] = result;
-                    // Extract the column names from the query result
-                    var columnNames = [];
-                    fields.forEach(f => {
-                        columnNames.push(f.name);
-                    });
-                    // Calculate pagination
-                    const pageSize = parseInt(req.body.pageSize);
-                    const page = parseInt(req.body.page);
-                    const count = rows.length;
-                    const pageCount = parseInt(Math.ceil(count / pageSize));
-                    const from = page * pageSize;
-                    const to = Math.min(page * pageSize + pageSize, count);
-                    const data = rows.slice(from, to);
-                    // Send result
-                    res.json({
-                        success: true,
-                        hasData: true,
-                        count: count,
-                        pageCount: pageCount,
-                        from: from,
-                        to: to,
-                        headers: columnNames,
-                        data: data,
-                    });
-                }
-            });
+                })
+                .then(result => {
+                    if (result == null ) {
+                        next();
+                    }
+                    // Query result without data
+                    else if (!Array.isArray(result[0]) || !Array.isArray(result[1])) {
+                        res.json({
+                            success: true,
+                            hasData: false,
+                        });
+                    }
+                    else {
+                        const [rows, fields] = result;
+                        // Extract the column names from the query result
+                        var columnNames = [];
+                        fields.forEach(f => {
+                            columnNames.push(f.name);
+                        });
+                        // Calculate pagination
+                        const pageSize = parseInt(req.body.pageSize);
+                        const page = parseInt(req.body.page);
+                        const count = rows.length;
+                        const pageCount = parseInt(Math.ceil(count / pageSize));
+                        const from = page * pageSize;
+                        const to = Math.min(page * pageSize + pageSize, count);
+                        const data = rows.slice(from, to);
+                        // Send result
+                        res.json({
+                            success: true,
+                            hasData: true,
+                            count: count,
+                            pageCount: pageCount,
+                            from: from,
+                            to: to,
+                            headers: columnNames,
+                            data: data,
+                        });
+                    }
+                });
+        }
     });
 
     // Reset: executes the database reset script
