@@ -130,10 +130,16 @@
             selectedPage = 0;
             pageCount = 0;
             updateButton();
-            let tablesReq = await fetch(`/layout/${selectedDb}`);
-            if (tablesReq.ok) {
-                let dbLayout = await tablesReq.json();
+            await getLayout();
+        }
+
+        async function getLayout() {
+            let layoutRes = await fetch(`/layout/${selectedDb}`);
+            if (layoutRes.ok) {
+                let dbLayout = await layoutRes.json();
                 displayLayout(dbLayout);
+            } else {
+                clearLayout();
             }
         }
 
@@ -161,6 +167,11 @@
                 queryResults.push([query, resJson.success, resJson.count]);
                 pageCount = resJson.pageCount;
                 displayResult(resJson);
+                const readOnly = readonlyCheckbox.checked;
+                if (!resJson.hasData && !readOnly) {
+                    await getDatabases();
+                    await getLayout();
+                }
             }
         }
 
@@ -225,18 +236,36 @@
         // View
 
         function displayDatabases(dbList) {
-            dbSelect.innerHTML = `<option value="" disabled selected hidden>kies database</option>`;
+            var hasSelected = false;
+            dbSelect.innerHTML = '';
             dbList.forEach(dbName => {
                 var optionElement = document.createElement('option');
                 optionElement.value = dbName;
                 optionElement.innerHTML = dbName;
+                if (selectedDb == dbName) {
+                    optionElement.setAttribute('selected', 'selected');
+                    hasSelected = true;
+                }
                 dbSelect.appendChild(optionElement);
             });
+            var defaultOptionElement = document.createElement('option');
+            defaultOptionElement.setAttribute('disabled', 'disabled');
+            if (!hasSelected) {
+                defaultOptionElement.setAttribute('selected', 'selected');
+            }
+            defaultOptionElement.setAttribute('hidden', 'hidden');
+            dbSelect.prepend(defaultOptionElement);
+            defaultOptionElement.innerHTML = 'Open database';
+            
         }
 
         function displayLayout(dbLayout) {
-            layoutContainer.innerHTML = '';
+            if (dbLayout.length == 0) {
+                layoutContainer.innerHTML = '<div class="alert alert-info" role="alert">Deze database heeft geen tabellen.</div>';
+                return;
+            }
 
+            layoutContainer.innerHTML = '';
             dbLayout.forEach(tableInfo => {
                 const tableInfoContainer = document.createElement('div');
                 tableInfoContainer.className = 'd-flex flex-wrap';
@@ -262,6 +291,10 @@
 
                 layoutContainer.appendChild(tableInfoContainer);
             });
+        }
+
+        function clearLayout() {
+            layoutContainer.innerHTML = '';
         }
 
         function displayResult(result) {
@@ -308,7 +341,7 @@
                 resultContainer.innerHTML =
                     ` <div class="alert alert-danger" role="alert">
                         <strong>Error: </strong>
-                    ${result.error}
+                        ${result.error}
                     </div>`;
             }
             displayPagination();

@@ -38,26 +38,32 @@ async function main() {
     });
 
     // Layout: get the table columns and data types of the database
-    app.get('/layout/:db', async (req, res) => {
+    app.get('/layout/:db', async (req, res, next) => {
         // Select database
-        await rootDbConn.query(`USE ${req.params.db}`);
-        // Get table names
-        const [tableRows] = await rootDbConn.query('SHOW tables');
-        // Get column name and data type for each table
-        var tableLayouts = [];
-        for (let tableRow of tableRows) {
-            const tableName = tableRow[0];
-            const [rows] = await rootDbConn.query(
-                `SELECT COLUMN_NAME, DATA_TYPE
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = Database() AND TABLE_NAME = '${tableName}'
-            `);
-            tableLayouts.push({
-                name: tableName,
-                columns: rows,
-            });
-        };
-        res.json(tableLayouts);
+        const useResult = await rootDbConn.query(`USE ${req.params.db}`).catch(useErr => {
+            res.status(404).send('Database not found!');
+        });
+        if (useResult == null) {
+            next();
+        } else {
+            // Get table names
+            const [tableRows] = await rootDbConn.query('SHOW tables');
+            // Get column name and data type for each table
+            var tableLayouts = [];
+            for (let tableRow of tableRows) {
+                const tableName = tableRow[0];
+                const [rows] = await rootDbConn.query(
+                    `SELECT COLUMN_NAME, DATA_TYPE
+                    FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = Database() AND TABLE_NAME = '${tableName}'
+                `);
+                tableLayouts.push({
+                    name: tableName,
+                    columns: rows,
+                });
+            };
+            res.json(tableLayouts);
+        }
     });
 
     // Run: execute a querry
@@ -91,7 +97,7 @@ async function main() {
                     });
                 })
                 .then(result => {
-                    if (result == null ) {
+                    if (result == null) {
                         next();
                     }
                     // Query result without data
@@ -177,7 +183,7 @@ async function main() {
                     rows.forEach(row => {
                         row.forEach(col => {
                             file += col;
-                            file += ',';
+                            file += ';';
                         });
                         file += '\n';
                     });
@@ -186,7 +192,8 @@ async function main() {
                 // JavaScript Object Natation
                 case 'json':
                     // TODO: Reformat in columns?
-                    res.json(rows);
+                    const jsonFile = JSON.stringify(rows, null, 4);
+                    res.set('Content-Type', 'application/json').send(jsonFile);
                     break;
                 default:
                     res.status(404).send('Unkown file format!');
