@@ -50,8 +50,7 @@
                 <div id="result-info-container" class="col" style="display: none;">
                     <div id="result-stats" class="row"></div>
                     <div class="btn-toolbar justify-content-between mb-3">
-                        <div id="page-nav" class="input-group">
-                        </div>
+                        <div class="page-nav"></div>
                     </div>
                     <div class="dropdown">
                         <button type="button" class="btn btn-outline-secondary dropdown-toggle mb-3"
@@ -81,12 +80,14 @@
                     <div class="spinner-border ms-auto" role="status" aria-hidden="true"></div>
                 </div>
             </div>
+            <div class="py-3 my-5">
+                <div class="page-nav my-auto" style="max-width: 400px;"></div>
+            </div>
         </div>
-
     </main>
     <script>
         // Variables
-        
+
         var dbList = [];
         var selectedDb;
         var queryResults = [];
@@ -109,7 +110,6 @@
         const resultStats = document.getElementById('result-stats');
         const loadingIndicator = document.getElementById('loading-indicator');
         const loadingMsg = document.getElementById('loading-msg');
-        const pageNav = document.getElementById('page-nav');   
 
         // API
 
@@ -202,8 +202,7 @@
             window.open(`/export/${encodeURIComponent(selectedDb)}/${encodeURIComponent(queryResults[queryResults.length - 1][0])}/export.${exportFormat}`);
         }
 
-        function changeLimit() {
-            const element = document.getElementById('limit-select');
+        function changeLimit(element) {
             selectedLimit = element.options[element.selectedIndex].value;
             selectedPage = 0;
             executeQuery();
@@ -257,7 +256,7 @@
             defaultOptionElement.setAttribute('hidden', 'hidden');
             dbSelect.prepend(defaultOptionElement);
             defaultOptionElement.innerHTML = 'Open database';
-            
+
         }
 
         function displayLayout(dbLayout) {
@@ -350,16 +349,7 @@
         }
 
         function displayPagination() {
-            pageNav.innerHTML = '';
             if (pageCount > 1) {
-                pageNav.innerHTML += `
-                <a role="button" class="btn btn-outline-secondary ${selectedPage == 0 ? 'disabled' : ''}" onclick="openPage(1)" title="Eerste">
-                   &laquo;
-                </a>`;
-                pageNav.innerHTML += `
-                <a role="button" class="btn btn-outline-secondary ${selectedPage == 0 ? 'disabled' : ''}" onclick="previousPage()" title="Vorige">
-                   &lt;
-                </a>`;
                 const range = 2;
                 var start = selectedPage + 1 - range;
                 var end = start + 2 * range;
@@ -373,36 +363,57 @@
                 start = Math.max(0, start);
                 end = Math.min(pageCount, end);
 
-                for (let i = start; i <= end; i++) {
-                    pageNav.innerHTML += `
+                const navigationParents = document.getElementsByClassName('page-nav');
+                for (var i = 0; i < navigationParents.length; i++) {
+                    const paginationElement = createPagination(start, end);
+                    navigationParents[i].innerHTML = '';
+                    navigationParents[i].appendChild(paginationElement);
+                };
+            }
+        }
+
+        function createPagination(start, end) {
+            const paginationElement = document.createElement('div');
+            paginationElement.className = 'input-group';
+            paginationElement.innerHTML += `
+                <a role="button" class="btn btn-outline-secondary ${selectedPage == 0 ? 'disabled' : ''}" onclick="openPage(1)" title="Eerste">
+                   &laquo;
+                </a>`;
+            paginationElement.innerHTML += `
+                <a role="button" class="btn btn-outline-secondary ${selectedPage == 0 ? 'disabled' : ''}" onclick="previousPage()" title="Vorige">
+                   &lt;
+                </a>`;
+
+
+            for (let i = start; i <= end; i++) {
+                paginationElement.innerHTML += `
                     <a role="button" class="btn btn-outline-secondary ${i == selectedPage + 1 ? 'active' : ''}" onclick="openPage(${i})" title="Pagina ${i}">
                       ${i}
                     </a>`;
-                }
-                pageNav.innerHTML += `
+            }
+            paginationElement.innerHTML += `
                 <a role="button" class="btn btn-outline-secondary ${selectedPage == pageCount - 1 ? 'disabled' : ''}" onclick="nextPage()" title="Volgende">
                     &gt;
                 </a>`;
-                pageNav.innerHTML += `
+            paginationElement.innerHTML += `
                 <a role="button" class="btn btn-outline-secondary ${selectedPage == pageCount - 1 ? 'disabled' : ''}" onclick="openLastPage()" title="Laatste">
                     &raquo;
                 </a>`;
-                const limitOptions = [100, 200, 500, 1000];
-                const limitSelect = document.createElement('select');
-                limitSelect.className = 'form-control form-select';
-                limitSelect.id = 'limit-select';
-                limitSelect.addEventListener('change', () => changeLimit());
-                limitOptions.forEach(option => {
-                    const optionElement = document.createElement('option');
-                    optionElement.value = option;
-                    optionElement.innerHTML = option;
-                    if (selectedLimit == option) {
-                        optionElement.setAttribute('selected', 'selected');
-                    }
-                    limitSelect.appendChild(optionElement);
-                });
-                pageNav.appendChild(limitSelect);
-            }
+            const limitOptions = [100, 200, 500, 1000];
+            const limitSelect = document.createElement('select');
+            limitSelect.className = 'form-control form-select';
+            limitSelect.setAttribute('onchange', 'changeLimit(this)');
+            limitOptions.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.innerHTML = option;
+                if (selectedLimit == option) {
+                    optionElement.setAttribute('selected', 'selected');
+                }
+                limitSelect.appendChild(optionElement);
+            });
+            paginationElement.appendChild(limitSelect);
+            return paginationElement;
         }
 
         function displayHistory() {
