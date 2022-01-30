@@ -154,51 +154,64 @@ async function main() {
     });
 
     // Export: exports a query result to a file
-    app.get('/export/:db/:query/:filename.:format', async (req, res) => {
+    app.get('/export/:db/:query/:filename.:format', async (req, res, next) => {
         // Select database
-        await readDbConn.query(`USE ${req.params.db}`);
+        let useResult = await readDbConn.query(`USE ${req.params.db}`).catch(useErr => {
+            res.status(404).send('Database not found!');
+        });
 
         // Execute the query
-        const [rows, fields] = await readDbConn.query(req.params.query);
-
-        if (!Array.isArray(rows) || !Array.isArray(fields)) {
-            res.status(400).send('Query result has no rows!');
+        if (useResult == null) {
+            next();
         }
         else {
-            // Extract the column names from the query result
-            var columnNames = [];
-            fields.forEach(c => {
-                columnNames.push(c.name);
-            });
+            readDbConn.query(req.params.query).catch(queryErr => {
+                res.status(400).send('Invalid query!');
+            }).then(result => {
+                if (result == null) {
+                    next();
+                }
+                else if (!Array.isArray(result[0]) || !Array.isArray(result[1])) {
+                    res.status(400).send('Query without data.');
+                }
+                else {
+                    const [rows, fields] = result;
+                    // Extract the column names from the query result
+                    var columnNames = [];
+                    fields.forEach(c => {
+                        columnNames.push(c.name);
+                    });
 
-            switch (req.params.format.toLowerCase()) {
-                // Comma Seperated File
-                case 'csv':
-                    var file = '';
-                    columnNames.forEach(col => {
-                        file += col;
-                        file += ',';
-                    });
-                    file += '\n';
-                    rows.forEach(row => {
-                        row.forEach(col => {
-                            file += col;
-                            file += ';';
-                        });
-                        file += '\n';
-                    });
-                    res.set('Content-Type', 'text/csv').send(file);
-                    break;
-                // JavaScript Object Natation
-                case 'json':
-                    // TODO: Reformat in columns?
-                    const jsonFile = JSON.stringify(rows, null, 4);
-                    res.set('Content-Type', 'application/json').send(jsonFile);
-                    break;
-                default:
-                    res.status(404).send('Unkown file format!');
-                    break;
-            }
+                    switch (req.params.format.toLowerCase()) {
+                        // Comma Seperated File
+                        case 'csv':
+                            var file = '';
+                            columnNames.forEach(col => {
+                                file += col;
+                                file += ',';
+                            });
+                            file += '\n';
+                            rows.forEach(row => {
+                                row.forEach(col => {
+                                    file += col;
+                                    file += ';';
+                                });
+                                file += '\n';
+                            });
+                            res.set('Content-Type', 'text/csv').send(file);
+                            break;
+                        // JavaScript Object Natation
+                        case 'json':
+                            // TODO: Reformat in columns?
+                            const jsonFile = JSON.stringify(rows, null, 4);
+                            res.set('Content-Type', 'application/json').send(jsonFile);
+                            break;
+                        default:
+                            res.status(404).send('Unkown file format!');
+                            break;
+                    }
+                }
+            });
         }
     });
 
