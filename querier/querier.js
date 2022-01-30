@@ -202,8 +202,15 @@ async function main() {
                             break;
                         // JavaScript Object Natation
                         case 'json':
-                            // TODO: Reformat in columns?
-                            const jsonFile = JSON.stringify(rows, null, 4);
+                            var jsonList = [];
+                            for (let row of rows) {
+                                var item = {};
+                                for (let n in columnNames) {
+                                    item[columnNames[n]] = row[n];
+                                }
+                                jsonList.push(item);
+                            }
+                            const jsonFile = JSON.stringify(jsonList, null, 4);
                             res.set('Content-Type', 'application/json').send(jsonFile);
                             break;
                         default:
