@@ -13,14 +13,16 @@
 </head>
 
 <body class="container">
-    <header class="mx-md-3 my-3">
+    <header class="text-center mx-md-3 mt-3 mb-5">
         <h1 class="fw-bold">MySQL Querier</h1>
     </header>
     <main class="mx-md-3">
         <div class="row my-4">
-            <div class="col-5">
-                <h2 class="mb-3">Database</h2>
-                <div class="input-group mb-3">
+            <div class="col-7">
+                <h2 class="mb-3">Database <button id="reset-button" class="btn btn-sm btn-outline-danger ms-2"
+                        onclick="resetDbs()">Reset alle
+                        databases</button></h2>
+                <div class="input-group mb-3" style="max-width: 300px;">
                     <span class="input-group-text">Database</span>
                     <select id="db-select" name="db-select" class="from-control form-select"
                         onchange="openDatabase(this)">
@@ -28,33 +30,27 @@
                     </select>
                 </div>
                 <div id="layout-container" class="mb-3"></div>
-                <button id="reset-button" class="btn btn-sm btn-outline-danger ms-2" onclick="resetDbs()">Reset alle
-                    databases</button>
             </div>
-            <div class="col-7">
-                <h2 class="mb-3">Invoer</h2>
-                <textarea id="query-input" name="sql-input" class="form-control mb-3 font-monospace fs-5" rows="6"
-                    placeholder="Type hier een SQL query.."></textarea>
-
-                <div class="form-check mb-3">
-                    <input type="checkbox" class="form-check-input" id="readonly-checkbox" checked>
-                    <label class="form-check-label" for="flexCheckDefault">Alleen lezen</label>
+            <div class="col-5">
+                <h2 class="mb-3">Geschiedenis</h2>
+                <div id="history-container" style="max-height: 200px;" class="overflow-auto">
+                    <div class="alert alert-info" role="alert">Nog niks uitgevoerd.</div>
                 </div>
-                <button id="run-button" class="btn btn-primary" onclick="executeQuery()" disabled>Uitvoeren</button>
-                <button id="run-button" class="btn btn-outline-secondary ms-2" onclick="resetQuery()">Wissen</button>
             </div>
         </div>
-        <div class="my-4">
-            <h2>Resultaten</h2>
+        <div>
+            <h2 class="mb-3">Invoer</h2>
             <div class="row mb-3">
-                <div id="result-info-container" class="col" style="display: none;">
-                    <div id="result-stats" class="row"></div>
-                    <div class="btn-toolbar justify-content-between mb-3">
-                        <div class="page-nav"></div>
-                    </div>
-                    <div class="dropdown">
-                        <button type="button" class="btn btn-outline-secondary dropdown-toggle mb-3"
-                            data-bs-toggle="dropdown">
+                <div class="col" style="max-width: 160px;">
+                    <div class="vstack gap-2">
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="readonly-checkbox" checked>
+                            <label class="form-check-label" for="flexCheckDefault">Alleen lezen</label>
+                        </div>
+                        <button id="run-button" class="btn btn-primary" onclick="executeQuery()"
+                            disabled>Uitvoeren</button>
+                        <button id="export-button" type="button" class="btn btn-outline-primary dropdown-toggle"
+                            data-bs-toggle="dropdown" disabled>
                             Exporteren
                         </button>
                         <ul class="dropdown-menu">
@@ -64,10 +60,22 @@
                             <li><a role="button" class="dropdown-item" onclick="exportQuery('json')">Naar
                                     .JSON-bestand</a></li>
                         </ul>
+                        <button class="btn btn-outline-secondary" onclick="resetQuery()">Wissen</button>
                     </div>
                 </div>
                 <div class="col">
-                    <div id="history-container" style="max-height: 300px;" class="overflow-auto">
+                    <textarea id="query-input" name="sql-input" class="form-control mb-3 font-monospace fs-5" rows="6"
+                        placeholder="Type hier een SQL query.."></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="my-4">
+            <h2>Resultaten</h2>
+            <div class="row mb-3">
+                <div id="result-info-container" class="col" style="display: none;">
+                    <div id="result-stats" class="row"></div>
+                    <div class="btn-toolbar justify-content-between mb-3">
+                        <div class="page-nav"></div>
                     </div>
                 </div>
             </div>
@@ -95,6 +103,7 @@
         var selectedLimit = 100;
         var selectedPage = 0;
         var pageCount = 0;
+        var lastQuerySucces = false;
 
         // Elements
 
@@ -102,6 +111,7 @@
         const queryInput = document.getElementById('query-input');
         const readonlyCheckbox = document.getElementById('readonly-checkbox');
         const runButton = document.getElementById('run-button');
+        const exportButton = document.getElementById('export-button');
 
         const layoutContainer = document.getElementById('layout-container');
         const resultContainer = document.getElementById('result-container');
@@ -129,7 +139,7 @@
             selectedDb = dbName;
             selectedPage = 0;
             pageCount = 0;
-            updateButton();
+            updateButtons();
             await getLayout();
         }
 
@@ -166,13 +176,17 @@
                 const resJson = await resRequest.json();
                 queryResults.push([query, resJson.success, resJson.count]);
                 pageCount = resJson.pageCount;
+                lastQuerySucces = resJson.success;
                 displayResult(resJson);
                 const readOnly = readonlyCheckbox.checked;
                 if (!resJson.hasData && !readOnly) {
                     await getDatabases();
                     await getLayout();
                 }
+            } else {
+                lastQuerySucces = false;
             }
+            updateButtons();
         }
 
 
@@ -187,15 +201,16 @@
             resultContainer.innerHTML = '';
             displayLoading(true, 'Databases resetten.. Dit kan even duren.');
             isResetting = true;
-            updateButton();
+            updateButtons();
             const resetRequest = await fetch('/reset', { method: 'POST' });
             await getDatabases();
             displayLoading(false);
             isResetting = false;
-            updateButton();
+            updateButtons();
             if (resetRequest.ok) {
                 resultContainer.innerHTML = '<div class="alert alert-success" role="alert">De databases zijn succesvol gereset!</div>';
             }
+            await getLayout();
         }
 
         function exportQuery(exportFormat) {
@@ -255,7 +270,7 @@
             }
             defaultOptionElement.setAttribute('hidden', 'hidden');
             dbSelect.prepend(defaultOptionElement);
-            defaultOptionElement.innerHTML = 'Open database';
+            defaultOptionElement.innerHTML = '-';
 
         }
 
@@ -445,8 +460,9 @@
             loadingMsg.innerHTML = msg;
         }
 
-        function updateButton() {
+        function updateButtons() {
             runButton.disabled = isResetting || selectedDb == null;
+            exportButton.disabled = isResetting || selectedDb == null || !lastQuerySucces;
         }
 
         // After loading
