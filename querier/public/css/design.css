@@ -1,0 +1,57 @@
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css?family=Raleway:400,600,700|Roboto:400,700|Indie+Flower');
+
+:root {
+    --primary:#007bff;
+    --secondary:#6c757d;
+    --success:#28a745;
+    --info:#17a2b8;
+    --warning:#ffc107;
+    --danger:#dc3545;
+    --light:#f8f9fa;
+    --dark:#343a40;
+
+    --roze: #c41e80;
+    --DutchBlue: #4a638d;
+}
+
+html,body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+}
+
+header, section, footer, aside, nav, main, article, figure {
+    display: block;
+}
+
+body {
+    margin: 5% 10% 5% 10%;
+}
+
+h1 {
+    font-size: 5rem;
+    font-family: 'Indie Flower', sans;
+    color: var(--roze);
+}
+
+h3 {
+    color: var(--roze);
+}
+
+h6 {
+    font-family: 'Indie Flower', serif;
+    color: var(--light);
+}
+
+li {
+    list-style: none;
+    color: var(--dark);
+}
+
+a {
+    font-size: larger;
+    color: var(--DutchBlue);
+}

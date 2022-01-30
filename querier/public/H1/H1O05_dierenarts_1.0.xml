@@ -1,0 +1,17 @@
+<praktijk>
+	<dier>
+		<naam>Buck</naam>
+		<eigenaar>Al Bundy</eigenaar>
+		<soort>hond</soort>
+		<geslacht>m</geslacht>
+		<geboren>1983</geboren>
+	</dier>
+
+	<dier>
+		<naam>Illbatting</naam>
+		<eigenaar>Pippi</eigenaar>
+		<soort>paard</soort>
+		<geslacht>m</geslacht>
+		<geboren>1961</geboren>
+	</dier>
+</praktijk>
