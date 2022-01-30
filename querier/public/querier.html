@@ -70,13 +70,11 @@
             </div>
         </div>
         <div class="my-4">
-            <h2>Resultaten</h2>
-            <div class="row mb-3">
-                <div id="result-info-container" class="col" style="display: none;">
-                    <div id="result-stats" class="row"></div>
-                    <div class="btn-toolbar justify-content-between mb-3">
-                        <div class="page-nav"></div>
-                    </div>
+            <h2 class="mb-3">Resultaten</h2>
+            <div id="result-info-container" class="mb-5" style="display: none;">
+                <div id="result-stats" class="row my-2" style="max-width: 550px;"></div>
+                <div class="btn-toolbar justify-content-between my-3">
+                    <div class="page-nav"></div>
                 </div>
             </div>
             <div id="result-container">
@@ -89,7 +87,9 @@
                 </div>
             </div>
             <div class="py-3 my-5">
-                <div class="page-nav my-auto" style="max-width: 400px;"></div>
+                <div class="btn-toolbar justify-content-between mb-3">
+                    <div class="page-nav"></div>
+                </div>
             </div>
         </div>
     </main>
@@ -322,9 +322,9 @@
                 }
                 else {
                     // Statss
-                    resultStats.innerHTML = `<div class="col m-3 p-2 rounded">Resultaten <b>${result.from + 1} - ${result.to}</b></div>
-                                             <div class="col m-3 p-2 rounded">Totaal <b>${result.count}</b></div>
-                                             <div class="col m-3 p-2 rounded">Pagina <b>${selectedPage + 1}/${result.pageCount}</b></div>`;
+                    resultStats.innerHTML = `<div>Resultaten: <b>${result.from + 1} - ${result.to}</b></div>
+                                             <div>Totaal: <b>${result.count}</b></div>
+                                             <div>Pagina: <b>${selectedPage + 1}/${result.pageCount}</b></div>`;
 
                     // Table
                     const tableHeader = document.createElement('thead');
@@ -364,6 +364,7 @@
         }
 
         function displayPagination() {
+            const navigationParents = document.getElementsByClassName('page-nav');
             if (pageCount > 1) {
                 const range = 2;
                 var start = selectedPage + 1 - range;
@@ -378,12 +379,15 @@
                 start = Math.max(0, start);
                 end = Math.min(pageCount, end);
 
-                const navigationParents = document.getElementsByClassName('page-nav');
                 for (var i = 0; i < navigationParents.length; i++) {
                     const paginationElement = createPagination(start, end);
                     navigationParents[i].innerHTML = '';
                     navigationParents[i].appendChild(paginationElement);
                 };
+            } else {
+                for (var i = 0; i < navigationParents.length; i++) {
+                    navigationParents[i].innerHTML = '';
+                }
             }
         }
 
