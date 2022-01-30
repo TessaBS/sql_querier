@@ -38,13 +38,19 @@ h1 {
 }
 
 h3 {
-    color: var(--roze);
+    color: var(--dark);
 }
 
 h6 {
     font-family: 'Indie Flower', serif;
     color: var(--light);
 }
+
+li,ul {
+    background-color: white;
+    padding: 2px 0px;
+    margin: 0;
+  }
 
 li {
     list-style: none;
