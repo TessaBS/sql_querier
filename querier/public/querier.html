@@ -47,7 +47,7 @@
                             <input type="checkbox" class="form-check-input" id="readonly-checkbox" checked>
                             <label class="form-check-label" for="flexCheckDefault">Alleen lezen</label>
                         </div>
-                        <button id="run-button" class="btn btn-primary" onclick="executeQuery()"
+                        <button id="run-button" class="btn btn-primary" onclick="executeQuery(true)"
                             disabled>Uitvoeren</button>
                         <button id="export-button" type="button" class="btn btn-outline-primary dropdown-toggle"
                             data-bs-toggle="dropdown" disabled>
@@ -153,7 +153,10 @@
             }
         }
 
-        async function executeQuery() {
+        async function executeQuery(changedInput) {
+            if (changedInput) {
+                selectedPage = 0;
+            }
             const query = queryInput.value;
             resultContainer.innerHTML = "";
             displayLoading(true, 'Je query wordt uitgevoerd..');
