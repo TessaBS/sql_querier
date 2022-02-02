@@ -13,6 +13,7 @@
 
     --roze: #c41e80;
     --DutchBlue: #4a638d;
+    --version:rgba(74, 94, 133, 0.6);
 }
 
 html,body {
@@ -20,30 +21,22 @@ html,body {
 }
 
 body {
-    margin: 0;
-}
-
-header, section, footer, aside, nav, main, article, figure {
-    display: block;
-}
-
-body {
     margin: 5% 10% 5% 10%;
+}
+
+main {
+    display: flex;
 }
 
 h1 {
     font-size: 5rem;
     font-family: 'Indie Flower', sans;
-    color: var(--roze);
+    color: var(--version);
 }
 
 h3 {
+    font-variant: small-caps;
     color: var(--dark);
-}
-
-h6 {
-    font-family: 'Indie Flower', serif;
-    color: var(--light);
 }
 
 li,ul {
