@@ -13,7 +13,8 @@
 
     --roze: #c41e80;
     --DutchBlue: #4a638d;
-    --version:rgba(74, 94, 133, 0.6);
+    --version03:rgba(74, 94, 133, 0.6);
+    --version:rgb(43, 223, 163);
 }
 
 html,body {
