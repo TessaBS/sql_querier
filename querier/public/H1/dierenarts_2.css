@@ -9,7 +9,7 @@ kleurencode {
 	font-size: 62.5%;
 }
 
-dier {
+kleur {
 	background-color: Gainsboro;
     font-size: 4.0rem;
 	margin: 0rem 80rem 4.0rem 20rem;
@@ -25,20 +25,14 @@ naam {
     letter-spacing: .5rem;	
 }
 
-eigenaar {
-	font-style: italic;
-}
 
-geslacht {
+R {
 text-transform: uppercase;
 }
 
-eigenaar, soort, geslacht, geboren {
+R, G, B{
 	margin: 0rem 4.0rem 0rem 4.0rem;
 	padding-left: 2.0rem;
-}
-
-soort, geslacht, geboren {
-	background-color: peru;
+    background-color: peru;
 	font-size: 2.5rem;
 }
