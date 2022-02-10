@@ -1,0 +1,44 @@
+* {
+	margin: 0;
+	padding: 0;
+	display: block;
+	font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+kleurencode {
+	font-size: 62.5%;
+}
+
+dier {
+	background-color: Gainsboro;
+    font-size: 4.0rem;
+	margin: 0rem 80rem 4.0rem 20rem;
+	border-bottom: 2.0rem solid Sienna;
+}
+
+naam {
+	background-color: tan;
+	padding: 2.0rem 0rem 2.0rem 4.0rem;
+	text-transform: lowercase;
+	font-variant: small-caps;
+	font-size: 6.0rem;
+    letter-spacing: .5rem;	
+}
+
+eigenaar {
+	font-style: italic;
+}
+
+geslacht {
+text-transform: uppercase;
+}
+
+eigenaar, soort, geslacht, geboren {
+	margin: 0rem 4.0rem 0rem 4.0rem;
+	padding-left: 2.0rem;
+}
+
+soort, geslacht, geboren {
+	background-color: peru;
+	font-size: 2.5rem;
+}
